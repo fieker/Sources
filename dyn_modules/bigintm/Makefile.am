@@ -1,36 +1,28 @@
 ACLOCAL_AMFLAGS = -I ../../m4
 
-# moduledir = $(libexecdir)/singular/MOD
-
-if ENABLE_P_PROCS_DYNAMIC
-#  noinst_LTLIBRARIES=bigintm.la 
-  check_LTLIBRARIES=bigintm.la 
-  
-endif
+SOURCES = mod_main.cc bigintm.cc bigintm.h
 
 MYINCLUDES =  -I${top_srcdir} -I${top_builddir} -I${srcdir} \
 -I${top_srcdir}/libpolys -I${top_builddir}/libpolys \
 -I${top_srcdir}/factory/include -I${top_builddir}/factory/include \
-$(FACTORY_CFLAGS) $(NTL_CFLAGS) $(GMP_CFLAGS) 
+$(FACTORY_CFLAGS) $(NTL_CFLAGS) $(GMP_CFLAGS) $(GOOGLE_PERFTOOLS_CFLAGS)
 
-bigintm_la_SOURCES   = mod_main.cc bigintm.cc bigintm.h
+module_LTLIBRARIES=bigintm.la 
 
 if ENABLE_P_PROCS_DYNAMIC
+  moduledir = $(libexecdir)/singular/MOD
   P_PROCS_CPPFLAGS_COMMON = -DDYNAMIC_VERSION 
+# Add under Mac OS X: -flat_namespace -weak_reference_mismatches weak -undefined dynamic_lookup
 else
-  P_PROCS_CPPFLAGS_COMMON = -DSTATIC_VERSION
+  moduledir = $(libdir)/singular
+  P_PROCS_CPPFLAGS_COMMON = -DSTATIC_VERSION 
 endif
 
-bigintm_la_CPPFLAGS   = ${MYINCLUDES} ${P_PROCS_CPPFLAGS_COMMON}
+P_PROCS_MODULE_LDFLAGS = -module -export-dynamic -avoid-version -flat_namespace -weak_reference_mismatches weak -undefined dynamic_lookup
 
-if ENABLE_P_PROCS_DYNAMIC
-  P_PROCS_MODULE_LDFLAGS = -module -export-dynamic -avoid-version -flat_namespace -weak_reference_mismatches weak -undefined dynamic_lookup
-  # Add under Mac OS X: -flat_namespace -weak_reference_mismatches weak -undefined dynamic_lookup
-else
-  P_PROCS_MODULE_LDFLAGS = 
-endif
-
-bigintm_la_LDFLAGS = ${P_PROCS_MODULE_LDFLAGS}
+bigintm_la_SOURCES   = $(SOURCES)
+bigintm_la_CPPFLAGS  = ${MYINCLUDES} ${P_PROCS_CPPFLAGS_COMMON}
+bigintm_la_LDFLAGS   = ${AM_LDFLAGS} ${P_PROCS_MODULE_LDFLAGS} ${GOOGLE_PERFTOOL_LDFLAGS} 
 
 # AM_COLOR_TESTS=always
 #
@@ -40,5 +32,4 @@ bigintm_la_LDFLAGS = ${P_PROCS_MODULE_LDFLAGS}
 #
 # TESTS=test_release.sh
 #
-# EXTRA_DIST = test.sh $(TESTS)
-
+# EXTRA_DIST = bigintm.tst ederc.tst test_clear_enum.tst test.sh $(TESTS)

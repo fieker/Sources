@@ -11,6 +11,7 @@
 #include <omalloc/omalloc.h>
 #include <resources/feFopen.h>
 #include <coeffs/coeffs.h>
+#include <coeffs/rmodulon.h>
 
 /// matrix of numbers
 /// NOTE: no reference counting!!!
@@ -29,8 +30,8 @@ class bigintmat
 
     bigintmat(int r, int c, const coeffs n): m_coeffs(n), v(NULL), row(r), col(c)
     {
-      assume (rows() >= 0);
-      assume (cols() >= 0);
+      assume (rows() > 0);
+      assume (cols() > 0);
 
       const int l = r*c;
 
@@ -52,8 +53,8 @@ class bigintmat
 
       if (l > 0)
       {
-        assume (rows() >= 0);
-        assume (cols() >= 0);
+        assume (rows() > 0);
+        assume (cols() > 0);
 
         assume (m->v != NULL);
 
@@ -67,7 +68,6 @@ class bigintmat
         }
       }
     }
-
     inline number& operator[](int i)
     {
 #ifndef SING_NDEBUG
@@ -178,6 +178,51 @@ class bigintmat
     void pprint(int maxwid);
     int compare(const bigintmat* op) const;
     int * getwid(int maxwid);
+
+    
+    // Funktionen von Kira, Jan, Marco
+    // !WICHTIG: Überall, wo eine number übergeben wird, und damit gearbeitet wird, die coeffs mitübergeben und erst
+    // überprüfen, ob diese mit basecoeffs übereinstimmen. Falls nein: Breche ab!
+    // Genauere Beschreibung der Funktionen in der Funktionen.odt
+    void swap(int i, int j); // Vertauscht i-te und j-te Spalte
+    void swaprow(int i, int j); // Vertauscht i-te und j-te Zeile
+    int findnonzero(int i); // liefert Index des ersten nicht-Null Eintrages in Zeile i
+    int findcolnonzero(int j); // ---"--- Spalte j
+    void getcol(int j, bigintmat *a); // Schreibt j-te Spalte in Vektor (Matrix) a
+    void getrow(int i, bigintmat *a); // Schreibt i-te Zeile in Vektor (Matrix) a
+    void setcol(int j, bigintmat *m); // Setzt j-te Spalte gleich übergebenem Vektor (Matrix) m
+    void setrow(int i, bigintmat *m); // Setzt i-te Zeile gleich übergebenem Vektor (Matrix) m
+    bool add(bigintmat *b); // Addiert zur Matrix die Matrix b dazu. Return false => an error occured
+    bool sub(bigintmat *b); // Subtrahiert ...
+    bool skalmult(number b, coeffs c); // Multipliziert zur Matrix den Skalar b hinzu
+    bool addcol(int i, int j, number a, coeffs c); // addiert a-faches der j-ten Spalte zur i-ten dazu
+    bool addrow(int i, int j, number a, coeffs c); // ... Zeile ...
+    void colskalmult(int i, number a, coeffs c); // Multipliziert zur i-ten Spalte den Skalar a hinzu
+    void rowskalmult(int i, number a, coeffs c); // ... Zeile ...
+    void concatrow(bigintmat *a, bigintmat *b); // Fügt zwei Matrixen untereinander/nebeneinander in gegebene Matrix ein, bzw spaltet gegebenen Matrix auf
+    void concatcol(bigintmat *a, bigintmat *b);
+    void splitrow(bigintmat *a, bigintmat *b); // Speichert in Matrix a den oberen, in b den unteren Teil der Matrix, vorausgesetzt die Dimensionen stimmen überein
+    void splitcol(bigintmat *a, bigintmat *b); // ... linken ... rechten ...
+    void splitcol(bigintmat *a, int i); // Speichert die ersten i Spalten als Teilmatrix in a
+    void splitrow(bigintmat *a, int i); // ... Zeilen ...
+    bool copy(bigintmat *b); // Kopiert Einträge von b auf Bigintmat
+    void unit(); // Macht Matrix (Falls quadratisch) zu Einheitsmatrix
+    void zero(); // Setzt alle Einträge auf 0
+    bigintmat *elim(int i, int j); // Liefert Streichungsmatrix (i-te Zeile und j-te Spalte gestrichen) zurück
+    number pseudoinv(bigintmat *a); // Speichert in Matrix a die Pseudoinverse, liefert den Nenner zurück
+    number det(); // Liefert Determinante mit LaPlace zurück
+    number hnfdet(); // Liefert Determinante mit HNF zurück
+    // Primzahlen als long long int, müssen noch in number umgewandelt werden?
+    void rowmod(int i, number p, coeffs c); // Reduziert Zeile i modulo p
+    void hnf(); // Bringt Matrix in HNF
+    bigintmat * modhnf(number p, coeffs c); // Bringt Matrix modular in HNF
+    bigintmat * modgauss(number p, coeffs c);
+    void skaldiv(number b); // Macht Ganzzahldivision aller Matrixeinträge mit b
+    void colskaldiv(int j, number b); // Macht Ganzzahldivision aller j-ten Spalteneinträge mit b
+    void mod(number p, coeffs c); // Reduziert komplette Matrix modulo p
+    void modhnf2(number p, coeffs c);
+    bigintmat* constmod(number p, coeffs c); // Liefert Kopie der Matrix zurück, allerdings im Ring Z modulo p
+    // enden hier wieder
 };
 
 bool operator==(const bigintmat & lhr, const bigintmat & rhr);
@@ -201,5 +246,17 @@ int intArrSum(int * a, int length);
 class intvec;
 intvec * bim2iv(bigintmat * b);
 bigintmat * iv2bim(intvec * b, const coeffs C);
-bigintmat * bimConcat(bigintmat * a, bigintmat * b, const coeffs C);
+
+// Wieder von Kira, Jan, Marco
+bigintmat * bimChangeCoeff(bigintmat *a, coeffs cnew); // Liefert Kopier von Matrix a zurück, mit coeffs cnew statt den ursprünglichen
+void bimMult(bigintmat *a, bigintmat *b, bigintmat *c); // Multipliziert Matrix a und b und speichert Ergebnis in c
+number solvexA(bigintmat *A, bigintmat *b, bigintmat *x); // Speichert mit Hauptnenner mult. Lösung von xA=b in Vektor x, liefert Hauptnenner zurück
+int kernbase (bigintmat *a, bigintmat *c, number p, coeffs q);
+coeffs numbercoeffs(number n, coeffs c);
+bool nCoeffs_are_equal(coeffs r, coeffs s);
+// Geklaut aus anderer Datei:
+static inline void number2mpz(number n, coeffs c, mpz_t m){ n_MPZ(m, n, c); }
+static inline number mpz2number(mpz_t m, coeffs c){ return n_InitMPZ(m, c); }
+// enden wieder
+
 #endif // #ifndef BIGINTMAT_H

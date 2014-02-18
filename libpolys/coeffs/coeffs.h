@@ -605,8 +605,6 @@ static inline number  n_EucNorm(number a, const coeffs r)
 { assume(r != NULL); assume(r->cfEucNorm!=NULL); return r->cfEucNorm (a,r); }
 static inline number  n_Ann(number a, const coeffs r)
 { assume(r != NULL); assume(r->cfAnn!=NULL); return r->cfAnn (a,r); }
-static inline number  n_RemQuot(number a, number b, number *q, const coeffs r)
-{ assume(r != NULL); assume(r->cfRemQuot!=NULL); return r->cfRemQuot (a,b,q,r); }
 static inline number  n_QuotRem(number a, number b, number *q, const coeffs r)
 { assume(r != NULL); assume(r->cfQuotRem!=NULL); return r->cfQuotRem (a,b,q,r); }
 

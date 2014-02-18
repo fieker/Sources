@@ -2055,6 +2055,14 @@ static BOOLEAN jjEXTGCD_BI(leftv res, leftv u, leftv v)
   res->data=(char *)L;
   return FALSE;
 }
+static BOOLEAN jjHNFMOD_BIM(leftv res, leftv M, leftv v)
+{
+  //TODO: missing to check ig the rings are compatible!
+  bigintmat in = (bigintmat*)(M->Data());
+  res->data = (char *)(in.modhnf((number)(v->Data()), in.basecoeffs()));
+  return FALSE;
+}
+
 static BOOLEAN jjEXTGCD_I(leftv res, leftv u, leftv v)
 {
   int uu=(int)(long)u->Data();int vv=(int)(long)v->Data();
@@ -5010,6 +5018,24 @@ static BOOLEAN jjTRACE_IV(leftv res, leftv v)
 static BOOLEAN jjTRANSP_BIM(leftv res, leftv v)
 {
   res->data = (char *)(((bigintmat*)(v->Data()))->transpose());
+  return FALSE;
+}
+static BOOLEAN jjHNF_BIM(leftv res, leftv v)
+{
+  bigintmat *in = new bigintmat((bigintmat*)(v->Data()));
+  in->hnf();
+  res->data = (char *)(in);
+  return FALSE;
+}
+static BOOLEAN jjINV_BIM(leftv res, leftv v)
+{
+//  res->data = (char *)(((bigintmat*)(v->Data()))->hnf());
+  return FALSE;
+}
+
+static BOOLEAN jjHNFDET_BIM(leftv res, leftv v)
+{
+  res->data = (char *)(((bigintmat*)(v->Data()))->hnfdet());
   return FALSE;
 }
 static BOOLEAN jjTRANSP_IV(leftv res, leftv v)

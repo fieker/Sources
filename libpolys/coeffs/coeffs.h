@@ -173,8 +173,27 @@ struct n_Procs_s
    void    (*cfPower)(number a, int i, number * result, const coeffs r);
    number  (*cfGetDenom)(number &n, const coeffs r);
    number  (*cfGetNumerator)(number &n, const coeffs r);
+   //CF: a Euclidean ring is a commutative, unitary ring with an Euclidean
+   //  function f s.th. for all a,b in R, b ne 0, we can find q, r s.th.
+   //  a = qb+r and either r=0 or f(r) < f(b)
+   //  Note that neither q nor r nor f(r) are unique.
    number  (*cfGcd)(number a, number b, const coeffs r);
    number  (*cfExtGcd)(number a, number b, number *s, number *t,const coeffs r);
+   //given a and b in a Euclidean setting, return s,t,u,v sth.
+   //  sa + tb = gcd
+   //  ua + vb = 0
+   //  sv + tu = 1
+   //  ie. the 2x2 matrix (s t | u v) is unimodular and maps (a,b) to (g, 0)
+   //CF: note, in general, this cannot be derived from ExtGcd due to 
+   //    zero divisors  
+   number  (*cfXExtGcd)(number a, number b, number *s, number *t, number *u, number *v, const coeffs r);
+   //in a Euclidean ring, return the Euclidean norm as a bigint (of type number)
+   number  (*cfEucNorm)(number a, const coeffs r);
+   //in a principal ideal ring (with zero divisors): the annihilator
+   number  (*cfAnn)(number a, const coeffs r);
+   //in a Euclidean ring, return the quotient and compute the remainder
+   //rem can be NULL
+   number  (*cfQuotRem)(number a, number b, number *rem, const coeffs r);
    number  (*cfLcm)(number a, number b, const coeffs r);
    void    (*cfDelete)(number * a, const coeffs r);
    nMapFunc (*cfSetMap)(const coeffs src, const coeffs dst);
@@ -313,6 +332,8 @@ struct n_Procs_s
   int_number    modNumber;
   unsigned long mod2mMask;
 #endif
+  /*CF: for blackbox rings */
+  void * data;
 #ifdef LDEBUG
    // must be last entry:
    /// Test: is "a" a correct number?
@@ -578,6 +599,17 @@ static inline number n_Gcd(number a, number b, const coeffs r)
 /// and may perform something unexpected in some cases...
 static inline number n_ExtGcd(number a, number b, number *s, number *t, const coeffs r)
 { assume(r != NULL); assume(r->cfExtGcd!=NULL); return r->cfExtGcd (a,b,s,t,r); }
+static inline number n_XExtGcd(number a, number b, number *s, number *t, number *u, number *v, const coeffs r)
+{ assume(r != NULL); assume(r->cfXExtGcd!=NULL); return r->cfXExtGcd (a,b,s,t,u,v,r); }
+static inline number  n_EucNorm(number a, const coeffs r)
+{ assume(r != NULL); assume(r->cfEucNorm!=NULL); return r->cfEucNorm (a,r); }
+static inline number  n_Ann(number a, const coeffs r)
+{ assume(r != NULL); assume(r->cfAnn!=NULL); return r->cfAnn (a,r); }
+static inline number  n_RemQuot(number a, number b, number *q, const coeffs r)
+{ assume(r != NULL); assume(r->cfRemQuot!=NULL); return r->cfRemQuot (a,b,q,r); }
+static inline number  n_QuotRem(number a, number b, number *q, const coeffs r)
+{ assume(r != NULL); assume(r->cfQuotRem!=NULL); return r->cfQuotRem (a,b,q,r); }
+
 
 /// in Z: return the lcm of 'a' and 'b'
 /// in Z/nZ, Z/2^kZ: computed as in the case Z

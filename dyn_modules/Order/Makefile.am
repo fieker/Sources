@@ -1,13 +1,13 @@
 ACLOCAL_AMFLAGS = -I ../../m4
 
-SOURCES = mod_main.cc bigintm.cc bigintm.h
+SOURCES = nforder.cpp nforder.h singular.cc
 
 MYINCLUDES =  -I${top_srcdir} -I${top_builddir} -I${srcdir} \
 -I${top_srcdir}/libpolys -I${top_builddir}/libpolys \
 -I${top_srcdir}/factory/include -I${top_builddir}/factory/include \
 $(FACTORY_CFLAGS) $(NTL_CFLAGS) $(GMP_CFLAGS) $(GOOGLE_PERFTOOLS_CFLAGS)
 
-module_LTLIBRARIES=bigintm.la 
+module_LTLIBRARIES=nforder.la 
 
 if ENABLE_P_PROCS_DYNAMIC
   moduledir = $(libexecdir)/singular/MOD
@@ -20,9 +20,9 @@ endif
 
 P_PROCS_MODULE_LDFLAGS = -module -export-dynamic -avoid-version -flat_namespace -weak_reference_mismatches weak -undefined dynamic_lookup
 
-bigintm_la_SOURCES   = $(SOURCES)
-bigintm_la_CPPFLAGS  = ${MYINCLUDES} ${P_PROCS_CPPFLAGS_COMMON}
-bigintm_la_LDFLAGS   = ${AM_LDFLAGS} ${P_PROCS_MODULE_LDFLAGS} ${GOOGLE_PERFTOOL_LDFLAGS} 
+nforder_la_SOURCES   = $(SOURCES)
+nforder_la_CPPFLAGS  = ${MYINCLUDES} ${P_PROCS_CPPFLAGS_COMMON}
+nforder_la_LDFLAGS   = ${AM_LDFLAGS} ${P_PROCS_MODULE_LDFLAGS} ${GOOGLE_PERFTOOL_LDFLAGS} 
 
 # AM_COLOR_TESTS=always
 #
@@ -32,4 +32,4 @@ bigintm_la_LDFLAGS   = ${AM_LDFLAGS} ${P_PROCS_MODULE_LDFLAGS} ${GOOGLE_PERFTOOL
 #
 # TESTS=test_release.sh
 #
-# EXTRA_DIST = bigintm.tst ederc.tst test_clear_enum.tst test.sh $(TESTS)
+# EXTRA_DIST = nforder.tst ederc.tst test_clear_enum.tst test.sh $(TESTS)

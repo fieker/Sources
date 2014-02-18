@@ -251,6 +251,8 @@ struct sValCmd1 dArith1[]=
 ,{D(jjTRANSP_BIM), TRANSPOSE_CMD,   BIGINTMAT_CMD,  BIGINTMAT_CMD , ALLOW_PLURAL |ALLOW_RING}
 ,{D(jjmpTransp),   TRANSPOSE_CMD,   XS(MATRIX_CMD), MATRIX_CMD    , ALLOW_PLURAL |ALLOW_RING}
 ,{D(jjidTransp),   TRANSPOSE_CMD,   XS(MODUL_CMD),  MODUL_CMD     , ALLOW_PLURAL |ALLOW_RING}
+,{D(jjHNF_BIM), HNF_CMD,   BIGINTMAT_CMD,  BIGINTMAT_CMD , ALLOW_PLURAL |ALLOW_RING}
+,{D(jjHNFDET_BIM), HNFDET_CMD,   BIGINT_CMD, BIGINTMAT_CMD, ALLOW_PLURAL |ALLOW_RING}
 ,{D(jjTYPEOF),     TYPEOF_CMD,      STRING_CMD,     ANY_TYPE      , ALLOW_PLURAL |ALLOW_RING}
 ,{D(jjUNIVARIATE), UNIVARIATE_CMD,  INT_CMD,        POLY_CMD      , ALLOW_PLURAL |ALLOW_RING}
 ,{D(jjVARIABLES_P),VARIABLES_CMD,   IDEAL_CMD,      POLY_CMD      , ALLOW_PLURAL |ALLOW_RING}
@@ -629,6 +631,7 @@ struct sValCmd2 dArith2[]=
 ,{D(jjWAIT1ST2),  WAIT1ST_CMD,    INT_CMD,        LIST_CMD,   INT_CMD, ALLOW_PLURAL |ALLOW_RING}
 ,{D(jjWAITALL2),  WAITALL_CMD,    INT_CMD,        LIST_CMD,   INT_CMD, ALLOW_PLURAL |ALLOW_RING}
 ,{D(jjWEDGE),     WEDGE_CMD,      MATRIX_CMD,     MATRIX_CMD, INT_CMD, NO_PLURAL |ALLOW_RING}
+,{D(jjHNFMOD_BIM), HNFMOD_CMD,   BIGINTMAT_CMD,  BIGINTMAT_CMD, NUMBER_CMD, ALLOW_PLURAL |ALLOW_RING}
 ,{NULL_VAL,       0,              0,              0,          0, NO_PLURAL |NO_RING}
 };
 /*=================== operations with 3 args.: table =================*/
@@ -867,6 +870,9 @@ cmdnames cmds[] =
   { "GCD",         2, GCD_CMD ,           CMD_2},
   { "hilb",        0, HILBERT_CMD ,       CMD_123},
   { "highcorner",  0, HIGHCORNER_CMD,     CMD_1},
+  { "hnf",         0, HNF_CMD,            CMD_1},
+  { "hnfdet",      0, HNFDET_CMD,         CMD_1},
+  { "hnfmod",      0, HNFMOD_CMD,         CMD_2},
   { "homog",       0, HOMOG_CMD ,         CMD_123},
   { "hres",        0, HRES_CMD ,          CMD_2},
   { "ideal",       0, IDEAL_CMD ,         RING_DECL_LIST},
@@ -882,6 +888,7 @@ cmdnames cmds[] =
   { "intersect",   0, INTERSECT_CMD ,     CMD_M},
   { "intmat",      0, INTMAT_CMD ,        INTMAT_CMD},
   { "intvec",      0, INTVEC_CMD ,        ROOT_DECL_LIST},
+  { "inv",         0, INV_CMD ,           CMD_1},
   { "jacob",       0, JACOB_CMD ,         CMD_1},
   { "janet",       0, JANET_CMD ,         CMD_12},
   { "jet",         0, JET_CMD ,           CMD_M},

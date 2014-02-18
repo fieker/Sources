@@ -223,6 +223,7 @@ AC_CONFIG_FILES([kernel/numeric/Makefile])
 AC_CONFIG_SUBDIRS([gfanlib])
 
 AC_CONFIG_FILES([dyn_modules/Makefile])
+AC_CONFIG_FILES([dyn_modules/Order/Makefile])
 AC_CONFIG_FILES([dyn_modules/bigintm/Makefile])
 AC_CONFIG_FILES([dyn_modules/syzextra/Makefile])
 AC_CONFIG_FILES([dyn_modules/callgfanlib/Makefile])

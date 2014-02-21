@@ -1,0 +1,16 @@
+ring R = 0,x,dp;
+LIB".libs/nforder.so";
+NFOrder a;
+a;
+bigintmat a1[4][4] = 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1;
+bigintmat a2[4][4] = 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -40000, 0, 420, 0;
+bigintmat a3[4][4] = 0, 0, 1, 0, 0, 0, 0, 1, -40000, 0, 420, 0, 0, -40000, 0, 420;
+bigintmat a4[4][4] = 0, 0, 0, 1, -40000, 0, 420, 0, 0, -40000, 0, 420, -16800000, 0, 136400, 0;
+a = nfOrder(4, a1,a2,a3,a4);
+a;
+calcdisc(a);
+a;
+
+bigintmat b[1][4] = 1,2,3,4;
+number e = EltFromMat(a, b);
+

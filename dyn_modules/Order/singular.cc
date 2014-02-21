@@ -17,19 +17,184 @@ static char* CoeffString(const coeffs r)
 {
   return "Ring";
 }
-static void WriteElt(number &a, const coeffs r)
+static void EltWrite(number &a, const coeffs r)
 {
+  bigintmat * b = (bigintmat*)a;
+  if (a) {
+    char * m = b->String();
+    ::Print("%s\n", m);
+    omFree(m);
+  } else {
+    Print("(Null)\n");
+  }
+
   printf("%s%d:%s: %s\n", __FILE__, __LINE__, __func__, "RING-ELT");
 }
 
-static number EltCreate(long i, const coeffs r)
+static number EltCreateMat(nforder *a, bigintmat *b)
 {
-  return NULL;
+  return (number) new bigintmat((bigintmat*)b);
 }
+
 
 static BOOLEAN order_cmp(coeffs, n_coeffType, void*)
 {
   return FALSE;
+}
+
+//static void KillChar(coeffs r); //  undo all initialisations
+                                // or NULL
+static void SetChar(const coeffs r)
+{
+  Print("%s called\n", __func__);
+}
+                                // or NULL
+   // general stuff
+static number EltMult(number a, number b, const coeffs r)
+{
+  nforder O = (nforder*) (r->data);
+  bigintmat *c = new bigintmat((bigintmat*)a);
+  O.elMult(c, (bigintmat*) b);
+  return (number) c;
+}
+static number EltSub(number a, number b, const coeffs r)
+{
+  nforder O = (nforder*) (r->data);
+  bigintmat *c = new bigintmat((bigintmat*)a);
+  O.elSub(c, (bigintmat*) b);
+  return (number) c;
+}
+static number EltAdd(number a, number b, const coeffs r)
+{
+  nforder O = (nforder*) (r->data);
+  bigintmat *c = new bigintmat((bigintmat*)a);
+  O.elAdd(c, (bigintmat*) b);
+  return (number) c;
+}
+static number EltDiv(number a, number b, const coeffs r)
+{
+  Werror("%s called\n", __func__);
+}
+static number EltIntDiv(number a, number b, const coeffs r)
+{
+  Werror("IntDiv called on order elts");
+}
+static number EltIntMod(number a, number b, const coeffs r)
+{
+  Werror("IntMod called on order elts");
+}
+static number EltExactDiv(number a, number b, const coeffs r)
+{
+  Werror("%s called\n", __func__);
+}
+   /// init with an integer
+static number  EltInit(long i,const coeffs r)
+
+{
+  Print("%s called\n", __func__);
+  return NULL;
+}
+
+   /// init with a GMP integer
+static number  EltInitMPZ(mpz_t i, const coeffs r)
+
+{
+  Werror("%s called\n", __func__);
+  return NULL;
+}
+   /// how complicated, (0) => 0, or positive
+static int EltSize(number n, const coeffs r)
+
+{
+  Werror("%s called\n", __func__);
+  return NULL;
+}
+   /// convertion to int, 0 if impossible
+static int EltInt(number &n, const coeffs r)
+
+{
+  Werror("%s called\n", __func__);
+  return NULL;
+}
+   /// Converts a non-negative number n into a GMP number, 0 if impossible
+static void EltMPZ(mpz_t result, number &n, const coeffs r)
+
+{
+  Werror("%s called\n", __func__);
+}
+   /// changes argument  inline: a:= -a
+   /// return -a! (no copy is returned)
+   /// the result should be assigned to the original argument: e.g. a = n_Neg(a,r)
+static number  EltNeg(number a, const coeffs r)
+   /// return 1/a
+{
+  Werror("%s called\n", __func__);
+  return NULL;
+}
+static number  EltInvers(number a, const coeffs r)
+   /// return a copy of a
+{
+  Werror("%s called\n", __func__);
+  return NULL;
+}
+static number  EltCopy(number a, const coeffs r)
+
+{
+  return EltCreateMat((nforder*)r->data, (bigintmat*)a);
+}
+
+static const char * EltRead(const char * s, number * a, const coeffs r)
+{
+  Print("%s called with ->%s-<\n", __func__, s);
+  return s;
+}
+
+static BOOLEAN EltEqual(number a,number b, const coeffs r)
+{
+  Print("%s called\n", __func__);
+  return 0;
+}
+static BOOLEAN EltGreater(number a,number b, const coeffs r)
+{
+  Print("%s called\n", __func__);
+  return 0;
+}
+static BOOLEAN EltIsOne(number a, const coeffs r)
+{
+  Print("%s called\n", __func__);
+  return 0;
+}
+static BOOLEAN EltIsMOne(number a, const coeffs r)
+{
+  Print("%s called\n", __func__);
+  return 0;
+}
+static BOOLEAN EltGreaterZero(number a, const coeffs r)
+{
+  Print("%s called\n", __func__);
+  return 0;
+}
+static BOOLEAN EltIsZero(number a, const coeffs r)
+{
+  Print("%s called\n", __func__);
+  return 0;
+}
+static void  EltPowerSmall(number a, int i, number * result, const coeffs r)
+{
+  Print("%s called\n", __func__);
+  result = NULL;
+}
+
+static nMapFunc EltSetMap(const coeffs src, const coeffs dst)
+{
+  Print("%s called\n", __func__);
+  return NULL;
+}
+
+static void EltDelete(number * a, const coeffs r)
+{
+  delete (bigintmat*)a;
+  *a = NULL;
 }
 
 static int nforder_type_id=0;
@@ -37,16 +202,40 @@ static n_coeffType nforder_type =n_CF;
 BOOLEAN n_nfOrderInit(coeffs r,  void * parameter)
 {
   puts("nfOrderInit called");
-  printf("%s%d:%s: type is %d should be %d data %lx\n", __FILE__, __LINE__, __func__, getCoeffType(r), nforder_type, parameter);
+  Print("%s%d:%s: type is %d should be %d data %lx\n", __FILE__, __LINE__, __func__, getCoeffType(r), nforder_type, parameter);
   assume( getCoeffType(r) == nforder_type );
   r->nCoeffIsEqual=order_cmp;
   r->cfKillChar = NULL;
+  r->cfSetChar = SetChar;
   r->cfCoeffString=CoeffString;
   r->cfCoeffWrite=WriteRing;
-  r->cfWriteShort=WriteElt;
-  r->cfInit = EltCreate;
+  r->cfWriteShort=EltWrite;
+  r->cfInit = EltInit;
+  r->cfMult = EltMult;
+  r->cfSub = EltSub;
+  r->cfAdd = EltAdd;
+  r->cfDiv = EltDiv;
+  r->cfExactDiv = EltExactDiv;
+  r->cfInitMPZ = EltInitMPZ;
+  r->cfSize = EltSize;
+  r->cfInt = EltInt;
+  r->cfMPZ = EltMPZ;
+  r->cfNeg = EltNeg;
+  r->cfInvers = EltInvers;
+  r->cfCopy = EltCopy;
   r->data = parameter;
   
+  r->cfWriteLong = EltWrite;
+  r->cfRead =EltRead;
+  r->cfGreater = EltGreater;
+  r->cfEqual = EltEqual;
+  r->cfIsZero = EltIsZero;
+  r->cfIsOne = EltIsOne;
+  r->cfIsMOne = EltIsMOne;
+  r->cfGreaterZero = EltGreaterZero;
+  r->cfPower = EltPowerSmall;
+  r->cfDelete = EltDelete;
+  r->cfSetMap = EltSetMap;
   return FALSE;
 }
 
@@ -129,13 +318,10 @@ static BOOLEAN nforder_bb_setup()
 
 // module stuff: ------------------------------------------------------------
 
-
 static BOOLEAN build_ring(leftv result, leftv arg)
 {
 
   int dimension = (int)(long)arg->Data();
-
-  puts("build ring called");
 
   bigintmat **multtable = (bigintmat**)omAlloc(dimension*sizeof(bigintmat*));
   arg = arg->next;
@@ -147,7 +333,19 @@ static BOOLEAN build_ring(leftv result, leftv arg)
   result->rtyp=nforder_type_id; // set the result type
   result->data=(char*)nInitChar(nforder_type, o);// set the result data
   Print("result is %lx\n", result->data);
+  currRing->cf = (coeffs)result->data;
 
+  return FALSE;
+}
+
+static BOOLEAN elt_from_mat(leftv result, leftv arg)
+{
+  coeffs C = (coeffs)arg->Data();
+  nforder *O = (nforder*) (C->data);
+  arg = arg->next;
+  bigintmat *b = (bigintmat*) arg->Data();
+  result->rtyp = NUMBER_CMD;
+  result->data = (char*)EltCreateMat(O, b);
   return FALSE;
 }
 
@@ -176,10 +374,16 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
           build_ring); // the C/C++ routine
 
   psModulFunctions->iiAddCproc(
-          (currPack->libname? currPack->libname: ""),// the library name,
-          "calcdisc",// the name for the singular interpreter
-          FALSE,  // should not be static
-          _calcdisc); // the C/C++ routine
+          (currPack->libname? currPack->libname: ""),
+          "calcdisc",
+          FALSE, 
+          _calcdisc); 
+
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "EltFromMat",
+          FALSE, 
+          elt_from_mat); 
 
 
   module_help_main(

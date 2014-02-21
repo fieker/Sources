@@ -1063,7 +1063,7 @@ BOOLEAN load_modules(const char *newlib, char *fullname, BOOLEAN autoexport)
 
   if(IsCmd(plib, token))
   {
-    Werror("'%s' is resered identifier\n", plib);
+    Werror("'%s' is reserved identifier\n", plib);
     goto load_modules_end;
   }
   pl = IDROOT->get(plib,0);

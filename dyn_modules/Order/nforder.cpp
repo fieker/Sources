@@ -58,7 +58,7 @@ nforder::nforder(nforder *o) {
   }
   baseorder = o->getBase();
   basis = o->getBasis();
-  divisor = o->getDiv();
+//  divisor = o->getDiv(); //CF: seems to crash the example with e*e;
   
 }
 

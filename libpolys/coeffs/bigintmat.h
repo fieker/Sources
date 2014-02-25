@@ -170,6 +170,8 @@ class bigintmat
     }
 
     char * String();
+    void Write();
+    void Print();
 /***
  * Returns a string as it would have been printed in the interpreter.
  * Used e.g. in print functions of various blackbox types.
@@ -198,6 +200,7 @@ class bigintmat
     bool addcol(int i, int j, number a, coeffs c); // addiert a-faches der j-ten Spalte zur i-ten dazu
     bool addrow(int i, int j, number a, coeffs c); // ... Zeile ...
     void colskalmult(int i, number a, coeffs c); // Multipliziert zur i-ten Spalte den Skalar a hinzu
+    void coltransform(int i, int j, number a, number b, number c, number d); // Multipliziert zur i-ten Spalte den Skalar a hinzu
     void rowskalmult(int i, number a, coeffs c); // ... Zeile ...
     void concatrow(bigintmat *a, bigintmat *b); // Fügt zwei Matrixen untereinander/nebeneinander in gegebene Matrix ein, bzw spaltet gegebenen Matrix auf
     void concatcol(bigintmat *a, bigintmat *b);
@@ -221,7 +224,7 @@ class bigintmat
     void colskaldiv(int j, number b); // Macht Ganzzahldivision aller j-ten Spalteneinträge mit b
     void mod(number p, coeffs c); // Reduziert komplette Matrix modulo p
     void modhnf2(number p, coeffs c);
-    bigintmat* constmod(number p, coeffs c); // Liefert Kopie der Matrix zurück, allerdings im Ring Z modulo p
+    bigintmat* inpmod(number p, coeffs c); // Liefert Kopie der Matrix zurück, allerdings im Ring Z modulo p
     // enden hier wieder
 };
 

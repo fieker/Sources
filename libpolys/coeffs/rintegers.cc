@@ -2,7 +2,7 @@
 *  Computer Algebra System SINGULAR     *
 ****************************************/
 /*
-* ABSTRACT: numbers modulo n
+* ABSTRACT: numbers (integers)
 */
 #ifdef HAVE_CONFIG_H
 #include "libpolysconfig.h"
@@ -78,6 +78,42 @@ number  nrzExtGcd (number a, number b, number *s, number *t, const coeffs)
   *t = (number) bt;
   return (number) erg;
 }
+number  nrzXExtGcd (number a, number b, number *s, number *t, number *u, number *v, const coeffs c)
+{
+  puts("xexgt");
+  int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
+  int_number bs = (int_number) omAllocBin(gmp_nrz_bin);
+  int_number bt = (int_number) omAllocBin(gmp_nrz_bin);
+  int_number bu = (int_number) omAllocBin(gmp_nrz_bin);
+  int_number bv = (int_number) omAllocBin(gmp_nrz_bin);
+  mpz_init(erg);
+  mpz_init(bs);
+  mpz_init(bt);
+  mpz_gcdext(erg, bs, bt, (int_number) a, (int_number) b);
+  mpz_init_set(bu, (int_number) b);
+  mpz_init_set(bv, (int_number) a);
+  mpz_div(bu, bu, erg);
+  mpz_div(bv, bv, erg);
+  *s = (number) bs;
+  *t = (number) bt;
+  mpz_mul_si(bu, bu, -1);
+  *u = (number) bu;
+  *v = (number) bv;
+  return (number) erg;
+}
+
+number nrzQuotRem(number a, number b, number *r, const coeffs)
+{
+  int_number qq = (int_number) omAllocBin(gmp_nrz_bin),
+             rr = (int_number) omAllocBin(gmp_nrz_bin);
+  mpz_init(qq);
+  mpz_init(rr);
+  mpz_divmod(qq, rr, (int_number)a, (int_number)b);
+  if (r) 
+    *r = (number) rr;
+  return (number) qq;
+}
+
 
 void nrzPower (number a, int i, number * result, const coeffs)
 {
@@ -408,6 +444,8 @@ BOOLEAN nrzInitChar(coeffs r,  void *)
   r->cfIsUnit = nrzIsUnit; // only for ring stuff
   r->cfGetUnit = nrzGetUnit; // only for ring stuff
   r->cfExtGcd = nrzExtGcd; // only for ring stuff
+  r->cfXExtGcd = nrzXExtGcd; // only for ring stuff
+  r->cfQuotRem = nrzQuotRem;
   r->cfDivBy = nrzDivBy; // only for ring stuff
   r->cfInit_bigint = nrzMapQ;
   //#endif

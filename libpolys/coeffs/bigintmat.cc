@@ -17,13 +17,6 @@
 #include <math.h>
 #include <string.h>
 
-// Ungetestet
-static void bimRowContent(bigintmat *bimat, int rowpos, int colpos);
-static void bimReduce(bigintmat *bimat, int rpiv, int colpos,
-                      int ready, int all);
-
-
-
 //#define BIMATELEM(M,I,J) (M)[ (M).index(I,J) ]
 
 bigintmat * bigintmat::transpose()
@@ -72,7 +65,7 @@ number bigintmat::get(int i, int j) const
   return get(index(i, j));
 }
 
-// Überladener *=-Operator (für int und bigint)
+// Ueberladener *=-Operator (für int und bigint)
 // Frage hier: *= verwenden oder lieber = und * einzeln?
 void bigintmat::operator*=(int intop)
 {
@@ -353,18 +346,40 @@ bigintmat * bimCopy(const bigintmat * b)
   return new bigintmat(b);
 }
 
+void bigintmat::Write()
+{
+  int n = cols(), m=rows();
+
+  StringAppendS("[ ");
+  for(int i=1; i<= m; i++) {
+    StringAppendS("[ ");
+    for(int j=1; j< n; j++) {
+      n_Write(v[(i-1)*n+j-1], basecoeffs());
+      StringAppendS(", ");
+    }
+    n_Write(v[i*n-1], basecoeffs());
+    StringAppendS(" ]");
+    if (i<n) {
+      StringAppendS(", ");
+    }
+  }
+  StringAppendS("]");
+}
+
 char* bigintmat::String()
 {
   StringSetS("");
-  const int l = cols()*rows();
-
-  n_Write(v[0], basecoeffs());
-  for (int i = 1; i < l; i++)
-  {
-    StringAppendS(","); n_Write(v[i], basecoeffs());
-  }
+  Write();
   return StringEndS();
 }
+
+void bigintmat::Print()
+{
+  StringSetS("");
+  Write();
+  ::Print("%s\n", StringEndS());
+}
+
 
 char* bigintmat::StringAsPrinted()
 {
@@ -606,99 +621,7 @@ void bigintmat::pprint(int maxwid)
   }
 }
 
-static void bimRowContent(bigintmat *bimat, int rowpos, int colpos)
-{
-  const coeffs basecoeffs = bimat->basecoeffs();
 
-  number tgcd, m;
-  int i=bimat->cols();
-
-  loop
-  {
-    tgcd = BIMATELEM(*bimat,rowpos,i--);
-    if (! n_IsZero(tgcd, basecoeffs)) 
-    {
-      tgcd = n_Copy(tgcd, basecoeffs);
-      break;
-    }
-    if (! n_IsZero(tgcd, basecoeffs)) break;
-    if (i<colpos) return;
-  }
-  if ((! n_GreaterZero(tgcd, basecoeffs)) && (! n_IsZero(tgcd, basecoeffs))) 
-    tgcd = n_Neg(tgcd, basecoeffs);
-  if ( n_IsOne(tgcd,basecoeffs)) {
-    n_Delete(&tgcd, basecoeffs);
-    return;
-  }
-  loop
-  {
-    m = BIMATELEM(*bimat,rowpos,i--);
-    if (! n_IsZero(m,basecoeffs))
-    {
-      number tp1 = n_Gcd(tgcd, m, basecoeffs);
-      n_Delete(&tgcd, basecoeffs);
-      tgcd = tp1;
-    }
-    if ( n_IsOne(tgcd,basecoeffs)) {
-      n_Delete(&tgcd, basecoeffs);
-      return;
-    }
-    if (i<colpos) break;
-  }
-  for (i=bimat->cols();i>=colpos;i--)
-  {
-    number tp2 = n_Div(BIMATELEM(*bimat,rowpos,i), tgcd,basecoeffs);
-    n_Delete(&BIMATELEM(*bimat,rowpos,i), basecoeffs);
-    BIMATELEM(*bimat,rowpos,i) = tp2;
-  }
-  n_Delete(&tgcd, basecoeffs);
-  n_Delete(&m, basecoeffs);
-}
-
-static void bimReduce(bigintmat *bimat, int rpiv, int colpos,
-                      int ready, int all)
-{
-  const coeffs basecoeffs = bimat->basecoeffs();
-
-  number tgcd, ce, m1, m2;
-  int j, i;
-  number piv = BIMATELEM(*bimat,rpiv,colpos);
-
-  for (j=all;j>ready;j--)
-  {
-    ce = n_Copy(BIMATELEM(*bimat,j,colpos),basecoeffs);
-    if (! n_IsZero(ce, basecoeffs))
-    {
-      n_Delete(&BIMATELEM(*bimat,j,colpos), basecoeffs);
-      BIMATELEM(*bimat,j,colpos) = n_Init(0, basecoeffs);
-      m1 = n_Copy(piv,basecoeffs);
-      m2 = n_Copy(ce,basecoeffs);
-      tgcd = n_Gcd(m1, m2, basecoeffs);
-      if (! n_IsOne(tgcd,basecoeffs))
-      {
-        number tp1 = n_Div(m1, tgcd,basecoeffs);
-        number tp2 = n_Div(m2, tgcd,basecoeffs);
-        n_Delete(&m1, basecoeffs);
-        n_Delete(&m2, basecoeffs);
-        m1 = tp1;
-        m2 = tp2;
-      }
-      for (i=bimat->cols();i>colpos;i--)
-      {
-        n_Delete(&BIMATELEM(*bimat,j,i), basecoeffs);
-        number tp1 = n_Mult(BIMATELEM(*bimat,j,i), m1,basecoeffs);
-        number tp2 = n_Mult(BIMATELEM(*bimat,rpiv,i), m2,basecoeffs);
-        BIMATELEM(*bimat,j,i) = n_Sub(tp1, tp2,basecoeffs);
-        n_Delete(&tp1, basecoeffs);
-        n_Delete(&tp2, basecoeffs);
-      }
-      bimRowContent(bimat, j, colpos+1);
-      n_Delete(&m1, basecoeffs);
-      n_Delete(&m2, basecoeffs);
-    }
-    n_Delete(&ce, basecoeffs);
-  }
-}
 
 void bigintmat::swap(int i, int j) {
   if ((i <= col) && (j <= col) && (i>0) && (j>0)) {
@@ -1240,34 +1163,32 @@ bool bigintmat::copy(bigintmat *b)
 }
 
 void bigintmat::unit() {
-if (row==col) {
-  number tmp;
+  if (row==col) {
+    number one = n_Init(1, basecoeffs()),
+           zero = n_Init(0, basecoeffs());
     for (int i=1; i<=row; i++) {
       for (int j=1; j<=col; j++) {
         if (i==j) {
-          tmp = n_Init(1,basecoeffs());
-          set(i, j, tmp);
-          n_Delete(&tmp,basecoeffs());
+          set(i, j, one);
         }
         else {
-          tmp = n_Init(0,basecoeffs());
-          set(i, j, tmp);
-          n_Delete(&tmp,basecoeffs());
+          set(i, j, zero);
         }
       }
     }
+    n_Delete(&one, basecoeffs());
+    n_Delete(&zero, basecoeffs());
   }
 }
 
 void bigintmat::zero() {
-  number tmp;
+  number tmp = n_Init(0, basecoeffs());
   for (int i=1; i<=row; i++) {
     for (int j=1; j<=col; j++) {
-      tmp = n_Init(0,basecoeffs());
       set(i, j, tmp);
-      n_Delete(&tmp,basecoeffs());
     }
   }
+  n_Delete(&tmp,basecoeffs());
 }
 
 
@@ -1304,10 +1225,11 @@ bigintmat *bigintmat::elim(int i, int j)
 number bigintmat::pseudoinv(bigintmat *a) {
 
   // Falls Matrix über reellen Zahlen nicht invertierbar, breche ab
-  number det = this->det();
-  number null = n_Init(0, basecoeffs());
- if ((a->rows() != row) || (a->rows() != a->cols()) || (row != col) || (n_Equal(det, null, basecoeffs())))
-    return null;
+ assume((a->rows() == row) && (a->rows() == a->cols()) && (row == col));
+    
+ number det = this->det();
+ if ((n_IsZero(det, basecoeffs())))
+    return det;
 
  // Hänge Einheitsmatrix über Matrix und wendet HNF an. An Stelle der Einheitsmatrix steht im Ergebnis die Transormationsmatrix dazu
   a->unit();
@@ -1317,7 +1239,7 @@ number bigintmat::pseudoinv(bigintmat *a) {
   // Arbeite weiterhin mit der zusammengehängten Matrix
   // Laufe durch die Diagonalelemente, und multipliziere jede Spalte rechts davon damit, speichere aber den alten Eintrag der Spalte, temp, der in der Zeile des Diagonalelements liegt, zwischen. Dann addiere das -temp-Fache der Diagonalspalte zur entsprechenenden Spalte rechts davon. Dadurch entsteht überall rechts der Diagonalen eine 0
   number diag;
-  number temp, ttemp, tttemp;
+  number temp, ttemp;
   for (int i=1; i<=col; i++) {
     diag = m->get(row+i, i);
     for (int j=i+1; j<=col; j++) {
@@ -1365,11 +1287,11 @@ number bigintmat::pseudoinv(bigintmat *a) {
       n_Delete(&ttemp, basecoeffs());
       n_Delete(&temp, basecoeffs());
     }
-    number lcm, inv;
-    lcm = n_IntDiv(prod, g, basecoeffs());
+    number lcm;
+    lcm = n_Div(prod, g, basecoeffs());
     for (int j=1; j<=col; j++) {
       ttemp = m->get(row+j,j);
-      temp = n_IntDiv(lcm, ttemp, basecoeffs());
+      temp = n_Div(lcm, ttemp, basecoeffs());
       m->colskalmult(j, temp, basecoeffs());
       n_Delete(&ttemp, basecoeffs());
       n_Delete(&temp, basecoeffs());
@@ -1381,7 +1303,7 @@ number bigintmat::pseudoinv(bigintmat *a) {
     number inv;
     for (int j=1; j<=col; j++) {
       ttemp = m->get(row+j, j);
-      if (n_Equal(null, ttemp, basecoeffs())) 
+      if (n_IsZero(ttemp, basecoeffs())) 
         PrintS("EINE NULL!!!\n");
       else {
         inv = n_Invers(ttemp, basecoeffs());
@@ -1394,7 +1316,6 @@ number bigintmat::pseudoinv(bigintmat *a) {
   number divisor = m->get(row+1, 1);
   m->splitrow(a, 1);
   delete m;
-  n_Delete(&null, basecoeffs());
   n_Delete(&det, basecoeffs());
   return divisor;
 }
@@ -1430,9 +1351,8 @@ number bigintmat::det()
 
 number bigintmat::hnfdet()
 {
-  puts("det...");
-  if (col != row)
-    return NULL;
+  assume (col == row);
+
   if (col == 1)
     return get(1, 1);
   bigintmat *m = new bigintmat(this);
@@ -1475,25 +1395,34 @@ void bigintmat::hnf()
 {
   // Keine 100%ige HNF, da Einträge rechts von Diagonalen auch kleiner 0 sein können
   // Laufen von unten nach oben und von links nach rechts
+
+  if (getCoeffType(basecoeffs()) == n_Q) {
+    coeffs s = nInitChar(n_Z, NULL);
+    bigintmat *m = bimChangeCoeff(this, s);
+    ::Print("mat over Z is \n");
+    ::Print("%s\n(%d x %d)\n", m->String(), m->rows(), m->cols());
+    m->hnf();
+    ::Print("hnf over Z is\n%s\n", m->String());
+  }
+
   int i = rows();
   int j = cols();
-  number invggt;
   number q = n_Init(0, basecoeffs());
   number one = n_Init(1, basecoeffs());
   number minusone = n_Init(-1, basecoeffs());
-  bigintmat *t1 = new bigintmat(rows(), 1, basecoeffs());
-  bigintmat *t2 = new bigintmat(rows(), 1, basecoeffs());
   number tmp1 = n_Init(0, basecoeffs());
   number tmp2 = n_Init(0, basecoeffs());
   number co1 = n_Init(0, basecoeffs());
   number co2 = n_Init(0, basecoeffs());
+  number co3 = n_Init(0, basecoeffs());
+  number co4 = n_Init(0, basecoeffs());
   number ggt = n_Init(0, basecoeffs());
 
   while ((i>0) && (j>0)) {
     // Falls erstes Nicht-Null-Element in Zeile i nicht existiert, oder hinter Spalte j vorkommt, gehe in nächste Zeile 
-    if ((findnonzero(i)==0) || (findnonzero(i)>j))
+    if ((findnonzero(i)==0) || (findnonzero(i)>j)) {
       i--;
-    else {
+    } else {
       // Laufe von links nach rechts durch die Zeile:
       for (int l=1; l<=j-1; l++) {
         n_Delete(&tmp1, basecoeffs());
@@ -1505,25 +1434,18 @@ void bigintmat::hnf()
           // Falls Eintrag (i.f. y g.) rechts daneben gleich 0, tausche beide Spalten, sonst...
           if (!n_IsZero(tmp2, basecoeffs())) {
             n_Delete(&ggt, basecoeffs());
-            ggt = n_ExtGcd(tmp1, tmp2, &co1, &co2, basecoeffs());
+            ggt = n_XExtGcd(tmp1, tmp2, &co1, &co2, &co3, &co4, basecoeffs());
             // Falls x=ggT(x, y), tausche die beiden Spalten und ziehe die (neue) rechte Spalte so häufig von der linken ab, dass an der ehemaligen Stelle von x nun eine 0 steht. Dazu:
             if (n_Equal(tmp1, ggt, basecoeffs())) { 
               swap(l, l+1);
-              // Falls wir modulo p rechnen: Multipliziere y mit dem Inversen von ggt, und speichere als q zwischen
-              if (getCoeffType(basecoeffs())==n_Zn) {
-                invggt = n_Invers(ggt, basecoeffs());
-                n_Delete(&q, basecoeffs());
-                q = n_Mult(tmp2, invggt, basecoeffs());
-                n_Delete(&invggt, basecoeffs());
-              }
-              else { // Ansonsten dividieren wir y durch ggt (ganzzahldivision, geht aber auf)
-                n_Delete(&q, basecoeffs());
-                q = n_IntDiv(tmp2, ggt, basecoeffs());
-              }
+              n_Delete(&q, basecoeffs());
+              q = n_Div(tmp2, ggt, basecoeffs());
               q = n_Neg(q, basecoeffs());
               // Dann addiere das -q-fache der (neuen) rechten Spalte zur linken dazu. Damit erhalten wir die gewünschte 0
+
               addcol(l, l+1, q, basecoeffs());
               n_Delete(&q, basecoeffs());
+              
             }
             else if (n_Equal(tmp1, minusone, basecoeffs())) {
               // Falls x=-1, so ist x=-ggt(x, y). Dann gehe wie oben vor, multipliziere aber zuerst die neue rechte Spalte (die mit x) mit -1
@@ -1534,22 +1456,27 @@ void bigintmat::hnf()
               addcol(l, l+1, tmp2, basecoeffs());
             }
             else {
-              // Sonst bringe durch Spaltenoperationen und Koeffizienten des erweiterten ggT den Eintrag an Stelle von y auf den ggt, und ziehe diese Spalte dann entsprechend häufig von der links daneben liegenden ab, um an Stelle des x eine 0 zu erhalten
-              colskalmult(l+1, co2, basecoeffs());
-              addcol(l+1, l, co1, basecoeffs());
-              if (getCoeffType(basecoeffs())==n_Zn) {
-                invggt = n_Invers(ggt, basecoeffs());
-                n_Delete(&q, basecoeffs());
-                q = n_Mult(tmp1, invggt, basecoeffs());
-                n_Delete(&invggt, basecoeffs());
-              }
-              else {
-                n_Delete(&q, basecoeffs());
-                q = n_IntDiv(tmp1, ggt, basecoeffs());
-              }
-              q = n_Neg(q, basecoeffs());
-              addcol(l, l+1, q, basecoeffs());
+              // CF: use the 2x2 matrix (co1, co2)(co3, co4) to
+              // get the gcd in position and the 0 in the other:
+#ifdef CF_DEB             
+              Print("applying trafo\n");
+              StringSetS("");
+              n_Write(co1, basecoeffs()); StringAppendS("\t");
+              n_Write(co2, basecoeffs()); StringAppendS("\t");
+              n_Write(co3, basecoeffs()); StringAppendS("\t");
+              n_Write(co4, basecoeffs()); StringAppendS("\t");
+              Print("%s\nfor l=%d\n", StringEndS(), l);
+              Print("to %s\n", String());
+#endif
+              coltransform(l, l+1, co3, co4, co1, co2);
+#ifdef CF_DEB              
+              Print("gives  %s\n", String());
+#endif
             }
+            n_Delete(&co1, basecoeffs());
+            n_Delete(&co2, basecoeffs());
+            n_Delete(&co3, basecoeffs());
+            n_Delete(&co4, basecoeffs());
           }
           else {
             swap(l, l+1);
@@ -1559,29 +1486,24 @@ void bigintmat::hnf()
       }
       
       tmp1 = get(i, j);
-      // Falls wir in Z arbeiten, mache alle Diagonalelemente durch Spaltenmultiplikation mit -1 positiv
-      if (getCoeffType(basecoeffs()) != n_Zn) {
-        if (!(n_GreaterZero(tmp1, basecoeffs()) || n_IsZero(tmp1, basecoeffs()))) {
-          tmp2 = n_Init(-1, basecoeffs());
-          colskalmult(j, tmp2, basecoeffs());
-          n_Delete(&tmp2, basecoeffs());
+      // normalize by units:
+      if (!n_IsZero(tmp1, basecoeffs())) {
+        number u = n_GetUnit(tmp1, basecoeffs());
+        if (!n_IsOne(u, basecoeffs())) {
+          StringSetS("multiplying by ");
+          n_Write(u, basecoeffs());
+          ::Print("%s\n", StringEndS());
+          colskalmult(j, u, basecoeffs());
         }
+        n_Delete(&u, basecoeffs());
       }
       // Zum Schluss mache alle Einträge rechts vom Diagonalelement betragsmäßig kleiner als dieses
       // Durch Änderung könnte man auch erreichen, dass diese auch nicht negativ sind
       for (int l=j+1; l<=col; l++) {
         tmp1 = get(i, l);
         tmp2 = get(i, j);
-        if (getCoeffType(basecoeffs())==n_Zn) {
-          invggt = n_Invers(tmp2, basecoeffs());
-          n_Delete(&q, basecoeffs());
-          q = n_Mult(tmp1, invggt, basecoeffs());
-          n_Delete(&invggt, basecoeffs());
-        }
-        else {
-          n_Delete(&q, basecoeffs());
-          q = n_IntDiv(tmp1, tmp2, basecoeffs());
-        }
+        n_Delete(&q, basecoeffs());
+        q = n_QuotRem(tmp1, tmp2, NULL, basecoeffs());
         q = n_Neg(q, basecoeffs());
         addcol(l, j, q, basecoeffs());
       }
@@ -1601,16 +1523,16 @@ void bigintmat::hnf()
 
 void bigintmat::modhnf2(number p, coeffs c)
 {
+  //CF: seems to do the same as above - until the last step, when the
+  //  entire matrix seems to e "reduced mod p".
+  //
   // Keine 100%ige HNF, da Einträge rechts von Diagonalen auch kleiner 0 sein können
   // Laufen von unten nach oben und von links nach rechts
   int i = rows();
   int j = cols();
   number invggt;
   number q;
-  number one = n_Init(1, basecoeffs());
   number minusone = n_Init(-1, basecoeffs());
-  bigintmat *t1 = new bigintmat(rows(), 1, basecoeffs());
-  bigintmat *t2 = new bigintmat(rows(), 1, basecoeffs());
   number tmp1 = n_Init(0, basecoeffs());
   number tmp2 = n_Init(0, basecoeffs());
   number co1 = n_Init(0, basecoeffs());
@@ -1751,7 +1673,7 @@ bigintmat * bigintmat::modhnf(number p, coeffs c)
 
 
 bigintmat *bigintmat::modgauss(number p, coeffs c) {
-  bigintmat *m = this->constmod(p, c);
+  bigintmat *m = this->inpmod(p, c);
   number temp, temp2;
   number inv;
   int inttemp;
@@ -1796,17 +1718,13 @@ bigintmat *bigintmat::modgauss(number p, coeffs c) {
 
 void bigintmat::skaldiv(number b)
 {
-  if (!((getCoeffType(basecoeffs()) == n_Z) || (getCoeffType(basecoeffs()) == n_Q))) {
-    Werror("Error in skaldiv. Can only be used in Z or Q!");
-    return;
-  }
   number tmp1, tmp2;
   for (int i=1; i<=row; i++)
   {
     for (int j=1; j<=col; j++)
     {
       tmp1 = get(i, j);
-      tmp2 = n_IntDiv(tmp1, b, basecoeffs());
+      tmp2 = n_Div(tmp1, b, basecoeffs());
       set(i, j, tmp2);
       n_Delete(&tmp1, basecoeffs());
       n_Delete(&tmp2, basecoeffs());
@@ -1816,25 +1734,46 @@ void bigintmat::skaldiv(number b)
 
 void bigintmat::colskaldiv(int j, number b)
 {
-  if (!((getCoeffType(basecoeffs()) == n_Z) || (getCoeffType(basecoeffs()) == n_Q))) {
-    Werror("Error in colskaldiv. Can only be used in Z or Q!");
-    return;
-  }
   number tmp1, tmp2;
   for (int i=1; i<=row; i++)
   {
     tmp1 = get(i, j);
-    tmp2 = n_IntDiv(tmp1, b, basecoeffs());
+    tmp2 = n_Div(tmp1, b, basecoeffs());
     set(i, j, tmp2);
     n_Delete(&tmp1, basecoeffs());
     n_Delete(&tmp2, basecoeffs());
   }
 }
 
+void bigintmat::coltransform(int j, int k, number a, number b, number c, number d)
+{
+  number tmp1, tmp2, tmp3, tmp4;
+  for (int i=1; i<=row; i++)
+  {
+    tmp1 = get(i, j);
+    tmp2 = get(i, k);
+    tmp3 = n_Mult(tmp1, a, basecoeffs());
+    tmp4 = n_Mult(tmp2, b, basecoeffs());
+    n_InpAdd(tmp3, tmp4, basecoeffs());
+    n_Delete(&tmp4, basecoeffs());
+
+    n_InpMult(tmp1, c, basecoeffs());
+    n_InpMult(tmp2, d, basecoeffs());
+    n_InpAdd(tmp1, tmp2, basecoeffs());
+    n_Delete(&tmp2, basecoeffs());
+
+    set(i, j, tmp3);
+    set(i, k, tmp1);
+    n_Delete(&tmp1, basecoeffs());
+    n_Delete(&tmp3, basecoeffs());
+  }
+}
+
+
+
 void bigintmat::mod(number p, coeffs c)
 {
-  // Erzeuge mit p per numbercoeffs neue coeffs coe
-  // Mappe jeden Eintrag zu coe und wieder zurück
+  // produce the matrix in Z/pZ
   coeffs coe = numbercoeffs(p, c);
   nMapFunc f1 = n_SetMap(basecoeffs(), coe);
   nMapFunc f2 = n_SetMap(coe, basecoeffs());
@@ -1854,9 +1793,9 @@ void bigintmat::mod(number p, coeffs c)
   }
 }
 
-bigintmat* bigintmat::constmod(number p, coeffs c)
+bigintmat* bigintmat::inpmod(number p, coeffs c)
 {
-  // Erzeuge neue Matrix mit coeffs, die mit numbercoeffs von p erzeugt sind. Mappe jeden Eintrag der alten Matrix auf die neue und gib diese zurück.
+  // as above, but in-place.
   coeffs coe = numbercoeffs(p, c);
   nMapFunc f1 = n_SetMap(basecoeffs(), coe);
   number tmp1, tmp2;
@@ -1935,7 +1874,8 @@ int kernbase (bigintmat *a, bigintmat *c, number p, coeffs q) {
     n_Delete(&temp, m->basecoeffs());
   }
   n_Delete(&minusone, m->basecoeffs());
-  delete tmp, m;  
+  delete tmp;  
+  delete m;
   return dim;
 }
 
@@ -1955,17 +1895,19 @@ bool nCoeffs_are_equal(coeffs r, coeffs s) {
     return false;
   if ((getCoeffType(r)==n_Z) && (getCoeffType(s)==n_Z))
     return true;
-  if ((getCoeffType(r)==n_Zp) && (getCoeffType(s)==n_Zp))
+  if ((getCoeffType(r)==n_Zp) && (getCoeffType(s)==n_Zp)) {
     if (r->ch == s->ch)
       return true;
     else
       return false;
+  }  
   // n_Zn stimmt wahrscheinlich noch nicht
-  if ((getCoeffType(r)==n_Zn) && (getCoeffType(s)==n_Zn))
+  if ((getCoeffType(r)==n_Zn) && (getCoeffType(s)==n_Zn)) {
     if (r->ch == s->ch)
       return true;
     else
       return false;
+  }
   if ((getCoeffType(r)==n_Q) && (getCoeffType(s)==n_Q))
     return true;
   // FALL n_Zn FEHLT NOCH!

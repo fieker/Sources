@@ -2596,6 +2596,14 @@ number nlExtGcd(number a, number b, number *s, number *t, const coeffs)
   g=nlShort3(g);
   return g;
 }
+number nlXExtGcd(number a, number b, number *s, number *t, number *u, number *v, const coeffs r)
+{
+  number g = nlExtGcd(a, b, s, t, r);
+  *u = nlDiv(b, g, r);
+  *v = nlNeg(nlDiv(a, b, r), r);
+  return g;
+}
+
 
 void    nlCoeffWrite  (const coeffs, BOOLEAN /*details*/)
 {
@@ -2881,6 +2889,7 @@ BOOLEAN nlInitChar(coeffs r, void*)
   r->cfGetNumerator = nlGetNumerator;
   r->cfGcd  = nlGcd;
   r->cfExtGcd = nlExtGcd; // only for ring stuff and Z
+  r->cfXExtGcd = nlXExtGcd; // only for ring stuff and Z
   r->cfLcm  = nlLcm;
   r->cfDelete= nlDelete;
   r->cfSetMap = nlSetMap;

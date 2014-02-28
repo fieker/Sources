@@ -191,7 +191,7 @@ struct n_Procs_s
    number  (*cfEucNorm)(number a, const coeffs r);
    //in a principal ideal ring (with zero divisors): the annihilator
    number  (*cfAnn)(number a, const coeffs r);
-   //find a "canonical representative of a modullo the units of r
+   //find a "canonical representative of a modulo the units of r
    //return NULL if a is already normalized
    //otherwise, the factor.
    //(for Z: make positive, for z/nZ make the gcd with n

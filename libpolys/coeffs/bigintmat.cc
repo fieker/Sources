@@ -359,11 +359,11 @@ void bigintmat::Write()
     }
     n_Write(v[i*n-1], basecoeffs());
     StringAppendS(" ]");
-    if (i<n) {
+    if (i<m) {
       StringAppendS(", ");
     }
   }
-  StringAppendS("]");
+  StringAppendS(" ] ");
 }
 
 char* bigintmat::String()
@@ -1619,13 +1619,13 @@ void bigintmat::modhnf2(number p, coeffs c)
       for (int l=j+1; l<=col; l++) {
         tmp1 = get(i, l);
         tmp2 = get(i, j);
-        if (getCoeffType(basecoeffs())==n_Zn) {
+        if (getCoeffType(basecoeffs())==n_Zn) {//CF crap
           invggt = n_Invers(tmp2, basecoeffs());
           q = n_Mult(tmp1, invggt, basecoeffs());
           n_Delete(&invggt, basecoeffs());
         }
         else
-          q = n_IntDiv(tmp1, tmp2, basecoeffs());
+          q = n_QuotRem(tmp1, tmp2, NULL, basecoeffs());
         q = n_Neg(q, basecoeffs());
         addcol(l, j, q, basecoeffs());
         n_Delete(&q, basecoeffs());

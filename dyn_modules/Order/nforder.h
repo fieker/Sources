@@ -14,6 +14,12 @@
 #ifndef NFORDER_HPP
 #define NFORDER_HPP
 
+enum order_flags_log {
+  one_is_one, //if 1 is the first basis element
+  is_maximal_known,
+  is_maximal
+};
+
 class nforder
 {
 private:
@@ -28,12 +34,14 @@ private:
   bigintmat *basis; // Lin.Komb. der Basiselemente von baseorder zu Basiselementen der Ordnung (Eine Zeile ^= ein Basiselement)  
   number divisor; // Hauptnenner der Linearkombination der Basiselemente  
     // Entweder multtable oder baseorder zeigt auf NULL - je nachdem, wie die Ordnung konstruiert wurde  
+  int flags;
   
   ////////////////////////////////////
   /////// -1 Memberfunktionen ////////
   ////////////////////////////////////
   // Genauere Beschreibung aller Funktionen in der Funktionen.odt
   
+  void init(); //basic initialisation
 public:
   void calcdisc(); // Berechnet Diskriminante
   
@@ -44,7 +52,7 @@ public:
    //Lädt entweder Multiplikationstabelle von location, oder legt Ordnung o zu Grunde (mit Basis base und Hauptnenner div)  
   nforder(int dim, bigintmat **m, const coeffs q); // (keine Übergabe von const char *, sondern von bigintmat *, diese wird kopiert und als multtable verwendet)
   nforder(nforder *o, bigintmat *base, number div, const coeffs q);
-  nforder(nforder *o);
+  nforder(nforder *o, int);
   
   ~nforder();
   void Print();
@@ -62,6 +70,13 @@ public:
   nforder *getBase();
   bigintmat *getBasis();
   number foundBasis(bigintmat *b); // Liefert Basis in Abhängigkeit von zu unterst liegenden Ordnung
+
+  inline bool oneIsOne() {return (flags & (1<<one_is_one)) != 0;}
+  inline void setOneIsOne() {flags |= (1<<one_is_one);}
+
+  inline bool isMaximalKnown() {return (flags & (1<<is_maximal_known)) != 0;};
+  inline bool isMaximal() {return isMaximalKnown() && (flags & (1<<is_maximal_known));};
+  inline void setIsMaximal(bool is) {flags = (flags & (~((1<<is_maximal_known) + (1<<is_maximal)))) | (1<<is_maximal_known) | (is*(1<<is_maximal));};
   
   
   
@@ -96,7 +111,7 @@ void makebase(bigintmat *m, int i);
 /* Liefert bzgl. Primzahl p um eines größere Ordnung von o zurück */ 
 nforder *onestep(nforder *o, number p, coeffs c);
 /* Macht liefert p-maximale Ordnung von o zurück  */
-nforder *pmaximal(nforder *o, number p, coeffs c);
+nforder *pmaximal(nforder *o, number p);
 /* Liefert Maximalordnung, ausgehend von o, zurück  */
 nforder *round2(nforder *o); // Benötigt Faktorisierung der Diskriminanten
 /* Liefert Basis von I_p(O)/pI_p(O)  */

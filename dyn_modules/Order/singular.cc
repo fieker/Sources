@@ -7,7 +7,9 @@
 #include "nforder.h"
 #include "libpolys/coeffs/bigintmat.h"
 
-void dummy(coeffs) {}
+static int nforder_type_id=0;
+static n_coeffType nforder_type =n_CF;
+
 static void WriteRing(const coeffs r, BOOLEAN details)
 {
   printf("%s%d:%s: %s\n", __FILE__, __LINE__, __func__, "RING");
@@ -23,7 +25,6 @@ static void EltWrite(number &a, const coeffs r)
   if (a) {
     char * m = b->String();
     ::Print("%s\n", m);
-    omFree(m);
   } else {
     Print("(Null)\n");
   }
@@ -33,13 +34,15 @@ static void EltWrite(number &a, const coeffs r)
 
 static number EltCreateMat(nforder *a, bigintmat *b)
 {
-  return (number) new bigintmat((bigintmat*)b);
+  number xx = (number) new bigintmat((bigintmat*)b);
+  Print("Created new element %lx from %lx\n", xx, b);
+  return (number) xx;
 }
 
 
-static BOOLEAN order_cmp(coeffs, n_coeffType, void*)
+static BOOLEAN order_cmp(coeffs n, n_coeffType t, void*parameter)
 {
-  return FALSE;
+  return (t==nforder_type) && (n->data == parameter);
 }
 
 //static void KillChar(coeffs r); //  undo all initialisations
@@ -52,40 +55,44 @@ static void SetChar(const coeffs r)
    // general stuff
 static number EltMult(number a, number b, const coeffs r)
 {
-  nforder O = (nforder*) (r->data);
+  nforder *O = (nforder*) (r->data);
   bigintmat *c = new bigintmat((bigintmat*)a);
-  O.elMult(c, (bigintmat*) b);
+  O->elMult(c, (bigintmat*) b);
   return (number) c;
 }
 static number EltSub(number a, number b, const coeffs r)
 {
-  nforder O = (nforder*) (r->data);
+  nforder *O = (nforder*) (r->data);
   bigintmat *c = new bigintmat((bigintmat*)a);
-  O.elSub(c, (bigintmat*) b);
+  O->elSub(c, (bigintmat*) b);
   return (number) c;
 }
 static number EltAdd(number a, number b, const coeffs r)
 {
-  nforder O = (nforder*) (r->data);
+  nforder *O = (nforder*) (r->data);
   bigintmat *c = new bigintmat((bigintmat*)a);
-  O.elAdd(c, (bigintmat*) b);
+  O->elAdd(c, (bigintmat*) b);
   return (number) c;
 }
 static number EltDiv(number a, number b, const coeffs r)
 {
   Werror("%s called\n", __func__);
+  return NULL;
 }
 static number EltIntDiv(number a, number b, const coeffs r)
 {
   Werror("IntDiv called on order elts");
+  return NULL;
 }
 static number EltIntMod(number a, number b, const coeffs r)
 {
   Werror("IntMod called on order elts");
+  return NULL;
 }
 static number EltExactDiv(number a, number b, const coeffs r)
 {
   Werror("%s called\n", __func__);
+  return NULL;
 }
    /// init with an integer
 static number  EltInit(long i,const coeffs r)
@@ -193,12 +200,11 @@ static nMapFunc EltSetMap(const coeffs src, const coeffs dst)
 
 static void EltDelete(number * a, const coeffs r)
 {
-  delete (bigintmat*)a;
+  Print("Deleting %lx\n%s\n", *a, (((bigintmat*)(*a))->String()));
+  delete (bigintmat*)(*a);
   *a = NULL;
 }
 
-static int nforder_type_id=0;
-static n_coeffType nforder_type =n_CF;
 BOOLEAN n_nfOrderInit(coeffs r,  void * parameter)
 {
   puts("nfOrderInit called");
@@ -329,7 +335,7 @@ static BOOLEAN build_ring(leftv result, leftv arg)
     multtable[i] = new bigintmat((bigintmat*)arg->Data());
     arg = arg->next;
   }
-  nforder *o = new nforder(dimension, multtable, coeffs_BIGINT);
+  nforder *o = new nforder(dimension, multtable, nInitChar(n_Z, 0));
   result->rtyp=nforder_type_id; // set the result type
   result->data=(char*)nInitChar(nforder_type, o);// set the result data
   Print("result is %lx\n", result->data);
@@ -361,6 +367,47 @@ static BOOLEAN _calcdisc(leftv result, leftv arg)
   return FALSE;
 }
 
+static BOOLEAN pMaximalOrder(leftv result, leftv arg)
+{
+  assume (arg->Typ()==nforder_type_id);
+  coeffs c = (coeffs)arg->Data();
+  assume (c->type = nforder_type);
+  nforder * o = (nforder*)c->data;
+  arg = arg->next;
+  long p = (int)(long)arg->Data();
+  number P = n_Init(p, o->basecoeffs());
+
+  nforder *op = pmaximal(o, P);
+
+  result->rtyp=nforder_type_id; // set the result type
+  result->data=(char*)nInitChar(nforder_type, op);// set the result data
+  Print("result is %lx\n", result->data);
+  currRing->cf = (coeffs)result->data;
+
+  return FALSE;
+}
+
+static BOOLEAN oneStep(leftv result, leftv arg)
+{
+  assume (arg->Typ()==nforder_type_id);
+  coeffs c = (coeffs)arg->Data();
+  assume (c->type = nforder_type);
+  nforder * o = (nforder*)c->data;
+  arg = arg->next;
+  long p = (int)(long)arg->Data();
+  number P = n_Init(p, o->basecoeffs());
+
+  nforder *op = onestep(o, P, o->basecoeffs());
+
+  result->rtyp=nforder_type_id; // set the result type
+  result->data=(char*)nInitChar(nforder_type, op);// set the result data
+  Print("result is %lx\n", result->data);
+  currRing->cf = (coeffs)result->data;
+
+  return FALSE;
+}
+
+
 
 
 extern "C" int mod_init(SModulFunctions* psModulFunctions)
@@ -372,6 +419,18 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
           "nfOrder",// the name for the singular interpreter
           FALSE,  // should not be static
           build_ring); // the C/C++ routine
+
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),// the library name,
+          "pMaximalOrder",// the name for the singular interpreter
+          FALSE,  // should not be static
+          pMaximalOrder); // the C/C++ routine
+
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),// the library name,
+          "oneStep",// the name for the singular interpreter
+          FALSE,  // should not be static
+          oneStep); // the C/C++ routine
 
   psModulFunctions->iiAddCproc(
           (currPack->libname? currPack->libname: ""),

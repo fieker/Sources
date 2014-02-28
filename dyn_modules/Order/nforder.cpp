@@ -13,42 +13,49 @@
 ////////////////////////////////////
 
 /*________________0_______________*/ 
+void nforder::init() {
+  // Gibt es eine Multtable, so gibt es keine Baseorder
+  baseorder = NULL;
+  basis = NULL;
+  // Discriminante wird erst berechnet, wenn sie benötigt wird
+  discriminant = NULL;
+  divisor = NULL;
+  flags = 0;
+  multtable = NULL;
+  m_coeffs = NULL;
+  setOneIsOne();
+}
+
 nforder::nforder(int dim, bigintmat **m,const coeffs q) {
+  init();
   m_coeffs = q;
   dimension = dim;
   multtable = (bigintmat**)(omAlloc(dim*sizeof(bigintmat*)));
   for (int i=0; i<dim; i++) {
     multtable[i] = new bigintmat(m[i]);
   }
-  // Gibt es eine Multtable, so gibt es keine Baseorder
-  baseorder = NULL;
-  basis = NULL;
-  // Discriminante wird erst berechnet, wenn sie benötigt wird
-  discriminant = n_Init(0,basecoeffs());
 }
 
-
-
 nforder::nforder(nforder *o, bigintmat *base, number div, const coeffs q) {
+   init();
    m_coeffs = q;  
    basis = new bigintmat(base);
    //neue Ordnung erzeugen und übergebene Daten kopieren
-   baseorder = new nforder(o); 
+   baseorder = new nforder(o, 1); 
    //Gibt es eine Baseorder, brauchen wir keine Multtable. Könnte aber evtl. generiert werden
    multtable = NULL;
    divisor = n_Copy(div,basecoeffs());
    dimension = o->getDim();
-   discriminant = n_Init(0,basecoeffs());
-   ::Print("disc: "); n_Write(discriminant, q); ::Print("\n");
+   discriminant = NULL;
 }
 
-
-
-nforder::nforder(nforder *o) {
+nforder::nforder(nforder *o, int) {
+  init();
   m_coeffs = o->basecoeffs();
   ::Print("copy called: %lx\n", m_coeffs);
   // Kopiert die Daten der übergebenen Ordnung auf die erzeugte
-  discriminant = n_Init(0, basecoeffs());
+  if (o->discriminant)
+    discriminant = n_Copy(o->discriminant,  basecoeffs());
   // get-Funktionen liefern immer nur Kopien der Attribute zurück
   dimension = o->getDim();
   multtable = (bigintmat **)omAlloc(dimension*sizeof(bigintmat*));
@@ -58,13 +65,13 @@ nforder::nforder(nforder *o) {
   }
   baseorder = o->getBase();
   basis = o->getBasis();
-//  divisor = o->getDiv(); //CF: seems to crash the example with e*e;
-  
+  if (o->divisor)
+    divisor = n_Copy(o->divisor,  basecoeffs());
 }
 
 void nforder::Print() {
   ::Print("Order:\nof dimension %d\n", dimension);
-  if (!n_IsZero(discriminant, m_coeffs)) {
+  if (discriminant && !n_IsZero(discriminant, m_coeffs)) {
     ::Print("and discriminant: ");
     StringSetS("");
     n_Write(discriminant, m_coeffs);
@@ -76,7 +83,6 @@ void nforder::Print() {
     for(int i=0; i<dimension; i++) {
       char * m = multtable[i]->String();
       ::Print("%d: %s\n", i, m);
-      omFree(m);
     }
   }
 
@@ -86,12 +92,13 @@ void nforder::Print() {
     ::Print("with basis:\n");
     char * m = basis->String();
     ::Print("%s", m);
-    omFree(m);
     ::Print("and denominator: ");
     StringSetS("");
     n_Write(divisor, m_coeffs);
     ::Print("%s\n", StringEndS());
   }
+
+  ::Print("Flags: %lx\n", flags);
 }
 
 // Was bei Desktruktor ändern?
@@ -107,9 +114,9 @@ nforder::~nforder() {
     // andernfalls werden baseorder und basis gelöscht
     delete baseorder;
     delete basis;
-    n_Delete(&divisor, basecoeffs());
+    if (divisor) n_Delete(&divisor, basecoeffs());
   }
-  n_Delete(&discriminant, basecoeffs());
+  if (discriminant) n_Delete(&discriminant, basecoeffs());
 }
 
 /*
@@ -183,7 +190,9 @@ bigintmat *nforder::traceMatrix() {
       n_Delete(&sum, basecoeffs());
     }
   }
-  delete base1, base2, mm;
+  delete base1;
+  delete base2;
+  delete mm;
                           // Hier stand vorher: n_Delete(&t1, basecoeffs()); Funktion noch testen.Funktion gestestet. Müsste funktionieren.
   return m;
 }
@@ -194,7 +203,7 @@ bigintmat *nforder::traceMatrix() {
 /*_____________+1_______________ */
 number nforder::getDisc() {
   // Falls Discriminante bisher noch nicht berechnet wurde, berechne diese
-  if (n_IsZero(discriminant, basecoeffs())) {
+  if (!discriminant || n_IsZero(discriminant, basecoeffs())) {
     calcdisc();
   }
   return n_Copy(discriminant, basecoeffs());
@@ -233,7 +242,7 @@ nforder *nforder::getBase() {
   // Falls baseorder ein NULL-Pointer ist, liefere NULL zurück, andernfalls liefere eine Kopie von baseorder
   if (baseorder == NULL)
     return NULL;
-  nforder *o = new nforder(baseorder);
+  nforder *o = new nforder(baseorder, TRUE);
   return o;
 }
 
@@ -270,7 +279,10 @@ number nforder::foundBasis(bigintmat *b) {
     b->setrow(i, sum);
   }
   
-  delete check, tmp, sum, fb;
+  delete check;
+  delete tmp;
+  delete sum;
+  delete fb;
   // Der Nenner ist der grundlegende Nenner von baseorder multipliziert mit this.Nenner
   number t = n_Mult(divisor,di,basecoeffs());
   n_Delete(&di,basecoeffs());
@@ -350,7 +362,8 @@ void nforder::elMult(bigintmat *a, bigintmat *b) {
       // Die Lösung wird durch den Nenner der Lösung (Rückgabewert von solvexA) geteilt (geht hier immer auf, da wir eine Basis haben)
       // und enthält dann den Koeff-Vektor von a*b in this (Ergebnis wird wieder in a gespeichert)
       a->skaldiv(solvexA(basis, suma, a));
-      delete suma, sumb;
+      delete suma;
+      delete sumb;
     }
   }
 }
@@ -481,7 +494,11 @@ bigintmat *radicalmodpbase(nforder *o, number p, coeffs c) {
   }
   
   n_Delete(&dimen, o->basecoeffs());
-  delete m, bas, kbase, gen, tmp;
+  delete m;
+  delete bas; 
+  delete kbase;
+  delete gen;
+  delete tmp;
   return nbase;
 
 }
@@ -528,13 +545,18 @@ number multring(bigintmat *nbase, nforder *o, number p) {
   }
   number divisor = red->pseudoinv(nbase);
   
-  delete inv, lon, mm, temp, red, ttemp,nochnetemp;
+  delete inv;
+  delete lon;
+  delete mm;
+  delete temp;
+  delete red;
+  delete ttemp;
+  delete nochnetemp;
   n_Delete(&divi, o->basecoeffs());
   return divisor;
 }
 
 nforder *onestep(nforder *o, number p, coeffs c) {
-  number dim = n_Init(o->getDim(), o->basecoeffs());
   // Berechne F_p-Basis von I_p/pI_p
   bigintmat *basis;
   basis = radicalmodpbase(o, p, c);
@@ -553,11 +575,12 @@ nforder *onestep(nforder *o, number p, coeffs c) {
   return no;
 }
 
-nforder *pmaximal(nforder *o, number p, coeffs c) {
+nforder *pmaximal(nforder *o, number p) {
+  coeffs c = o->basecoeffs();
   number disc = o->getDisc();
-  number olddisc = n_Init(0, o->basecoeffs());
+  number olddisc = n_Init(0, c);
   nforder *no;
-  nforder *otemp = new nforder(o);
+  nforder *otemp = new nforder(o, 1);
   // Solange onestep etwas tut (also die Diskriminante sich verändert) führe erneut onestep aus
   while (!n_Equal(olddisc, disc, otemp->basecoeffs())) {
     n_Delete(&olddisc, otemp->basecoeffs());

@@ -751,8 +751,10 @@ void nrnInitExp(unsigned long m, coeffs r)
 {
   nrnSetExp(m, r);
   assume (r->modNumber != NULL);
-  if (mpz_cmp_ui(r->modNumber,2) <= 0)
-    WarnS("nrnInitExp failed (m in Z/m too small)");
+//CF: in geenral, the modulus is computed somewhere. I don't want to
+//  check it's size before I construct the best ring.
+//  if (mpz_cmp_ui(r->modNumber,2) <= 0)
+//    WarnS("nrnInitExp failed (m in Z/m too small)");
 }
 
 #ifdef LDEBUG

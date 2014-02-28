@@ -213,7 +213,8 @@ void ndClearDenominators(ICoeffsEnumerator& /*numberCollectionEnumerator*/, numb
 number ndCopy(number a, const coeffs) { return a; }
 number ndCopyMap(number a, const coeffs aRing, const coeffs r)
 {
-  assume( getCoeffType(r) == getCoeffType(aRing) );
+//CF: the assume is wrong as this map is also used to map n_Zn to n_Z!
+//  assume( getCoeffType(r) == getCoeffType(aRing) );
   if ( nCoeff_has_simple_Alloc(r) && nCoeff_has_simple_Alloc(aRing) )
     return a;
 	else

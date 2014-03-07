@@ -130,9 +130,13 @@ class bigintmat
 
     /// get a copy of an entry. NOTE: starts at [1,1]
     number get(int i, int j) const;
+    /// view an entry an entry. NOTE: starts at [1,1]
+    //do NOT delete.
+    number view(int i, int j) const;
 
     /// get a copy of an entry. NOTE: starts at [0]
     number get(int i) const;
+    number view(int i) const;
 
     /// replace an entry with a copy (delete old + copy new!).
     /// NOTE: starts at [1,1]
@@ -209,14 +213,16 @@ class bigintmat
     void splitcol(bigintmat *a, int i); // Speichert die ersten i Spalten als Teilmatrix in a
     void splitrow(bigintmat *a, int i); // ... Zeilen ...
     bool copy(bigintmat *b); // Kopiert Einträge von b auf Bigintmat
-    void unit(); // Macht Matrix (Falls quadratisch) zu Einheitsmatrix
+    void one(); // Macht Matrix (Falls quadratisch) zu Einheitsmatrix
+    int isOne(); // id matrix is identity
     void zero(); // Setzt alle Einträge auf 0
     bigintmat *elim(int i, int j); // Liefert Streichungsmatrix (i-te Zeile und j-te Spalte gestrichen) zurück
     number pseudoinv(bigintmat *a); // Speichert in Matrix a die Pseudoinverse, liefert den Nenner zurück
-    number det(); // Liefert Determinante mit LaPlace zurück
-    number hnfdet(); // Liefert Determinante mit HNF zurück
+    number trace(); // the trace ....
+    number det(); // det (via LaPlace in general, hnf for euc. rings)
+    number hnfdet(); // det via HNF
     // Primzahlen als long long int, müssen noch in number umgewandelt werden?
-    void rowmod(int i, number p, coeffs c); // Reduziert Zeile i modulo p
+    //void rowmod(int i, number p, coeffs c); // Reduziert Zeile i modulo p
     void hnf(); // Bringt Matrix in HNF
     bigintmat * modhnf(number p, coeffs c); // Bringt Matrix modular in HNF
     bigintmat * modgauss(number p, coeffs c);
@@ -225,6 +231,8 @@ class bigintmat
     void mod(number p, coeffs c); // Reduziert komplette Matrix modulo p
     void modhnf2(number p, coeffs c);
     bigintmat* inpmod(number p, coeffs c); // Liefert Kopie der Matrix zurück, allerdings im Ring Z modulo p
+    number content();  //the content
+    void simplifyContentDen(number *den); // ensures that Gcd(den, content)=1
     // enden hier wieder
 };
 

@@ -57,6 +57,14 @@ number bigintmat::get(int i) const
   return n_Copy(v[i], basecoeffs());
 }
 
+number bigintmat::view(int i) const
+{
+  assume (i >= 0);
+  assume (i<rows()*cols());
+
+  return v[i];
+}
+
 number bigintmat::get(int i, int j) const
 {
   assume (i >= 0 && j >= 0);
@@ -65,6 +73,13 @@ number bigintmat::get(int i, int j) const
   return get(index(i, j));
 }
 
+number bigintmat::view(int i, int j) const
+{
+  assume (i >= 0 && j >= 0);
+  assume (i <= rows() && j <= cols());
+
+  return view(index(i, j));
+}
 // Ueberladener *=-Operator (für int und bigint)
 // Frage hier: *= verwenden oder lieber = und * einzeln?
 void bigintmat::operator*=(int intop)
@@ -1132,9 +1147,8 @@ void bigintmat::splitrow(bigintmat *a, int i) {
   int height = a->rows();
   for (int j=1; j<=height; j++) {
     for (int k=1; k<=col; k++) {
-      tmp = get(j+i-1, k);
+      tmp = view(j+i-1, k);
       a->set(j, k, tmp);
-      n_Delete(&tmp, basecoeffs());
     }
   }
 }
@@ -1154,15 +1168,34 @@ bool bigintmat::copy(bigintmat *b)
   {
     for (int j=1; j<=col; j++)
     {
-      t1 = b->get(i, j);
+      t1 = b->view(i, j);
       set(i, j, t1);
-      n_Delete(&t1, basecoeffs());
     }
   }
   return true;
 }
 
-void bigintmat::unit() {
+int bigintmat::isOne() {
+  coeffs r = basecoeffs();
+  if (row==col) {
+    for (int i=1; i<=row; i++) {
+      for (int j=1; j<=col; j++) {
+        if (i==j) {
+          if (!n_IsOne(view(i, j), r))
+            return 0;
+        }
+        else {
+          if (!n_IsZero(view(i,j), r))
+            return 0;
+        }
+      }
+    }
+  }
+  return 1;
+}
+
+
+void bigintmat::one() {
   if (row==col) {
     number one = n_Init(1, basecoeffs()),
            zero = n_Init(0, basecoeffs());
@@ -1192,6 +1225,10 @@ void bigintmat::zero() {
 }
 
 
+//used in the det function. No idea what it does.
+//looks like it return the submatrix where the i-th row
+//and j-th column has been removed in the LaPlace generic
+//determinant algorithm
 bigintmat *bigintmat::elim(int i, int j)
 {
   if ((i<=0) || (i>row) || (j<=0) || (j>col))
@@ -1222,17 +1259,21 @@ bigintmat *bigintmat::elim(int i, int j)
 }
 
 
+//returns d such that a/d is the inverse of the input
+//TODO: make work for p not prime using the euc stuff.
+//long term: rewrite for Z using p-adic lifting
+//and Dixon. Possibly even the sparse recent Storjohann stuff
 number bigintmat::pseudoinv(bigintmat *a) {
 
   // Falls Matrix über reellen Zahlen nicht invertierbar, breche ab
  assume((a->rows() == row) && (a->rows() == a->cols()) && (row == col));
     
- number det = this->det();
+ number det = this->det(); //computes the HNF, so should e reused.
  if ((n_IsZero(det, basecoeffs())))
     return det;
 
  // Hänge Einheitsmatrix über Matrix und wendet HNF an. An Stelle der Einheitsmatrix steht im Ergebnis die Transormationsmatrix dazu
-  a->unit();
+  a->one();
   bigintmat *m = new bigintmat(2*row, col, basecoeffs());
   m->concatrow(a,this);
   m->hnf();
@@ -1255,64 +1296,49 @@ number bigintmat::pseudoinv(bigintmat *a) {
   // Bei Z/n sparen wir uns das, da es hier sinnlos ist
   number g;
   number gcd;
-  if (getCoeffType(basecoeffs()) != n_Zn) {
-    for (int j=1; j<=col; j++) {
-      g = n_Init(0, basecoeffs());
-      for (int i=1; i<=2*row; i++) {
-        temp = m->get(i,j);
-        gcd = n_Gcd(g, temp, basecoeffs());
-        n_Delete(&g, basecoeffs());
-        n_Delete(&temp, basecoeffs());
-        g = n_Copy(gcd, basecoeffs());
-        n_Delete(&gcd, basecoeffs());
-      }
-      if (!(n_IsOne(g, basecoeffs())))
-        m->colskaldiv(j, g);
-      n_Delete(&g, basecoeffs());
-    }
-  }
-  // Nun müssen die Diagonalelemente durch Spaltenmultiplikation gleich gesetzt werden. Bei Z können wir mit dem kgV arbeiten, bei Z/n bringen wir jedes Diagonalelement auf 1 (wir arbeiten immer mit n = Primzahl. Für n != Primzahl muss noch an anderen Stellen etwas geändert werden)
-  if (getCoeffType(basecoeffs()) != n_Zn) {
+  for (int j=1; j<=col; j++) {
     g = n_Init(0, basecoeffs());
-    number prod = n_Init(1, basecoeffs());
-    for (int i=1; i<=col; i++) {
-      gcd = n_Gcd(g, m->get(row+i, i), basecoeffs());
+    for (int i=1; i<=2*row; i++) {
+      temp = m->get(i,j);
+      gcd = n_Gcd(g, temp, basecoeffs());
       n_Delete(&g, basecoeffs());
+      n_Delete(&temp, basecoeffs());
       g = n_Copy(gcd, basecoeffs());
       n_Delete(&gcd, basecoeffs());
-      ttemp = n_Copy(prod, basecoeffs());
-      temp = m->get(row+i, i);
-      n_Delete(&prod, basecoeffs());
-      prod = n_Mult(ttemp, temp, basecoeffs());
-      n_Delete(&ttemp, basecoeffs());
-      n_Delete(&temp, basecoeffs());
     }
-    number lcm;
-    lcm = n_Div(prod, g, basecoeffs());
-    for (int j=1; j<=col; j++) {
-      ttemp = m->get(row+j,j);
-      temp = n_Div(lcm, ttemp, basecoeffs());
-      m->colskalmult(j, temp, basecoeffs());
-      n_Delete(&ttemp, basecoeffs());
-      n_Delete(&temp, basecoeffs());
-    }
-    n_Delete(&lcm, basecoeffs());
+    if (!(n_IsOne(g, basecoeffs())))
+      m->colskaldiv(j, g);
+    n_Delete(&g, basecoeffs());
+  }
+  
+  // Nun müssen die Diagonalelemente durch Spaltenmultiplikation gleich gesett werden. Bei Z können wir mit dem kgV arbeiten, bei Z/n bringen wir jedes Diagonalelement auf 1 (wir arbeiten immer mit n = Primzahl. Für n != Primzahl muss noch an anderen Stellen etwas geändert werden)
+  
+  g = n_Init(0, basecoeffs());
+  number prod = n_Init(1, basecoeffs());
+  for (int i=1; i<=col; i++) {
+    gcd = n_Gcd(g, m->get(row+i, i), basecoeffs());
+    n_Delete(&g, basecoeffs());
+    g = n_Copy(gcd, basecoeffs());
+    n_Delete(&gcd, basecoeffs());
+    ttemp = n_Copy(prod, basecoeffs());
+    temp = m->get(row+i, i);
     n_Delete(&prod, basecoeffs());
+    prod = n_Mult(ttemp, temp, basecoeffs());
+    n_Delete(&ttemp, basecoeffs());
+    n_Delete(&temp, basecoeffs());
   }
-  else {
-    number inv;
-    for (int j=1; j<=col; j++) {
-      ttemp = m->get(row+j, j);
-      if (n_IsZero(ttemp, basecoeffs())) 
-        PrintS("EINE NULL!!!\n");
-      else {
-        inv = n_Invers(ttemp, basecoeffs());
-        m->colskalmult(j, inv, basecoeffs());
-        n_Delete(&inv, basecoeffs());
-      }
-      n_Delete(&ttemp, basecoeffs());
-    }
+  number lcm;
+  lcm = n_Div(prod, g, basecoeffs());
+  for (int j=1; j<=col; j++) {
+    ttemp = m->get(row+j,j);
+    temp = n_QuotRem(lcm, ttemp, NULL, basecoeffs());
+    m->colskalmult(j, temp, basecoeffs());
+    n_Delete(&ttemp, basecoeffs());
+    n_Delete(&temp, basecoeffs());
   }
+  n_Delete(&lcm, basecoeffs());
+  n_Delete(&prod, basecoeffs());
+  
   number divisor = m->get(row+1, 1);
   m->splitrow(a, 1);
   delete m;
@@ -1320,13 +1346,31 @@ number bigintmat::pseudoinv(bigintmat *a) {
   return divisor;
 }
 
+number bigintmat::trace()
+{
+  assume (col == row);
+  number t = get(1,1),
+         h;
+  coeffs r = basecoeffs();
+  for(int i=2; i<= col; i++) {
+    h = n_Add(t, view(i,i), r);
+    n_Delete(&t, r);
+    t = h;
+  }
+  return t;
+}
 
 number bigintmat::det()
 {
-  if (col != row)
-    return NULL;
+  assume (row==col);
+
   if (col == 1)
     return get(1, 1);
+  // should work as well in Z/pZ of type n_Zp?
+  // elies on XExtGcd and the other euc. functinos.
+  if ( getCoeffType(basecoeffs())== n_Z || getCoeffType(basecoeffs() )== n_Zn) {
+    return hnfdet();
+  }
   number sum = n_Init(0, basecoeffs());
   number t1, t2, t3, t4;
   bigintmat *b;
@@ -1368,6 +1412,9 @@ number bigintmat::hnfdet()
   }
   return prod;
 }
+
+#if 0
+//reduce the row i modulo p, not used
 void bigintmat::rowmod(int i, number p, coeffs c)
 {
   if ((i>row) || (i<1)) {
@@ -1389,6 +1436,7 @@ void bigintmat::rowmod(int i, number p, coeffs c)
     n_Delete(&a, basecoeffs());
   }
 }
+#endif
 
 
 void bigintmat::hnf()
@@ -1490,9 +1538,6 @@ void bigintmat::hnf()
       if (!n_IsZero(tmp1, basecoeffs())) {
         number u = n_GetUnit(tmp1, basecoeffs());
         if (!n_IsOne(u, basecoeffs())) {
-          StringSetS("multiplying by ");
-          n_Write(u, basecoeffs());
-          ::Print("%s\n", StringEndS());
           colskalmult(j, u, basecoeffs());
         }
         n_Delete(&u, basecoeffs());
@@ -1661,6 +1706,7 @@ bigintmat * bimChangeCoeff(bigintmat *a, coeffs cnew)
   return b;
 }
 
+//a lift of the HNF in Z/pZ
 bigintmat * bigintmat::modhnf(number p, coeffs c)
 {
   coeffs coe = numbercoeffs(p, c);
@@ -1672,6 +1718,9 @@ bigintmat * bigintmat::modhnf(number p, coeffs c)
 }
 
 
+//for p prime: echelon form (gaussian elemination) in Z/pZ
+//should be changed to work over a field and do the coercion
+//elsewhere (in the calling function)
 bigintmat *bigintmat::modgauss(number p, coeffs c) {
   bigintmat *m = this->inpmod(p, c);
   number temp, temp2;
@@ -1715,7 +1764,7 @@ bigintmat *bigintmat::modgauss(number p, coeffs c) {
   return bimChangeCoeff(m, basecoeffs());
 }
 
-
+//exactly divide matrix by b
 void bigintmat::skaldiv(number b)
 {
   number tmp1, tmp2;
@@ -1723,28 +1772,27 @@ void bigintmat::skaldiv(number b)
   {
     for (int j=1; j<=col; j++)
     {
-      tmp1 = get(i, j);
+      tmp1 = view(i, j);
       tmp2 = n_Div(tmp1, b, basecoeffs());
-      set(i, j, tmp2);
-      n_Delete(&tmp1, basecoeffs());
-      n_Delete(&tmp2, basecoeffs());
+      rawset(i, j, tmp2);
     }
   }
 }
 
+//exactly divide col j by b
 void bigintmat::colskaldiv(int j, number b)
 {
   number tmp1, tmp2;
   for (int i=1; i<=row; i++)
   {
-    tmp1 = get(i, j);
+    tmp1 = view(i, j);
     tmp2 = n_Div(tmp1, b, basecoeffs());
-    set(i, j, tmp2);
-    n_Delete(&tmp1, basecoeffs());
-    n_Delete(&tmp2, basecoeffs());
+    rawset(i, j, tmp2);
   }
 }
 
+// col(j, k) <- col(j,k)*matrix((a, c)(b, d))
+// mostly used internally in the hnf and Howell stuff
 void bigintmat::coltransform(int j, int k, number a, number b, number c, number d)
 {
   number tmp1, tmp2, tmp3, tmp4;
@@ -1771,9 +1819,11 @@ void bigintmat::coltransform(int j, int k, number a, number b, number c, number 
 
 
 
+//reduce all entries mod p. Does NOT change the coeffs type
 void bigintmat::mod(number p, coeffs c)
 {
   // produce the matrix in Z/pZ
+  // CF: TODO rewrite using QuotRem and not the map
   coeffs coe = numbercoeffs(p, c);
   nMapFunc f1 = n_SetMap(basecoeffs(), coe);
   nMapFunc f2 = n_SetMap(coe, basecoeffs());
@@ -1793,26 +1843,12 @@ void bigintmat::mod(number p, coeffs c)
   }
 }
 
+//coerce matrix to Z/pZ of type n_Zn
+//NOT inplace! returns a copy
 bigintmat* bigintmat::inpmod(number p, coeffs c)
 {
-  // as above, but in-place.
   coeffs coe = numbercoeffs(p, c);
-  nMapFunc f1 = n_SetMap(basecoeffs(), coe);
-  number tmp1, tmp2;
-  bigintmat *b = new bigintmat(rows(), cols(), coe);
-  
-  for (int i=1; i<=row; i++)
-  {
-    for (int j=1; j<=col; j++)
-    {
-      tmp1 = get(i, j);
-      tmp2 = f1(tmp1, basecoeffs(), coe);
-      b->set(i, j, tmp2);
-      n_Delete(&tmp1, basecoeffs());
-      n_Delete(&tmp2, coe);
-    }
-  }
-  return b;
+  return bimChangeCoeff(this, coe);
 }
 
 void bimMult(bigintmat *a, bigintmat *b, bigintmat *c)
@@ -1831,6 +1867,7 @@ void bimMult(bigintmat *a, bigintmat *b, bigintmat *c)
   delete tmp;
 }
 
+//CF: TODO make work for Z/nZ, no inv.
 number solvexA(bigintmat *A, bigintmat *b, bigintmat *x) {
   // Bestimme Pseudoinverse, mulipliziere von rechts an b und speichere Ergebnis in x.
   // Gebe Nenner von Pseudoinversen zurück.
@@ -1857,6 +1894,7 @@ number solvexA(bigintmat *A, bigintmat *b, bigintmat *x) {
   return 0;
 }
 
+//CF TODO make work for Z/nZ, don't use gauss
 int kernbase (bigintmat *a, bigintmat *c, number p, coeffs q) {
   number temp;
   number minusone = n_Init(-1, a->basecoeffs());
@@ -1880,6 +1918,7 @@ int kernbase (bigintmat *a, bigintmat *c, number p, coeffs q) {
 }
 
 
+//create Z/nA of type n_Zn
 coeffs numbercoeffs(number n, coeffs c) {
   mpz_t p;
   number2mpz(n, c, p);
@@ -1913,4 +1952,31 @@ bool nCoeffs_are_equal(coeffs r, coeffs s) {
   // FALL n_Zn FEHLT NOCH!
     //if ((getCoeffType(r)==n_Zn) && (getCoeffType(s)==n_Zn))
   return false;
+}
+
+number bigintmat::content()
+{
+  coeffs r = basecoeffs();
+  number g = get(1,1), h;
+  int n=rows()*cols();
+  for(int i=1; i<n && !n_IsOne(g, r); i++) {
+    h = n_Gcd(g, view(i), r);
+    n_Delete(&g, r);
+    g=h;
+  }
+  return g;
+}
+void bigintmat::simplifyContentDen(number *d)
+{
+  coeffs r = basecoeffs();
+  number g = n_Copy(*d, r), h;
+  int n=rows()*cols();
+  for(int i=0; i<n && !n_IsOne(g, r); i++) {
+    h = n_Gcd(g, view(i), r);
+    n_Delete(&g, r);
+    g=h;
+  }
+  *d = n_Div(*d, g, r);
+  if (!n_IsOne(g, r))
+  skaldiv(g);
 }

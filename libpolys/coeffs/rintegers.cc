@@ -80,7 +80,6 @@ number  nrzExtGcd (number a, number b, number *s, number *t, const coeffs)
 }
 number  nrzXExtGcd (number a, number b, number *s, number *t, number *u, number *v, const coeffs c)
 {
-  puts("xexgt");
   int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
   int_number bs = (int_number) omAllocBin(gmp_nrz_bin);
   int_number bt = (int_number) omAllocBin(gmp_nrz_bin);
@@ -185,9 +184,12 @@ number nrzSub (number a, number b, const coeffs)
   return (number) erg;
 }
 
-number  nrzGetUnit (number, const coeffs r)
+number  nrzGetUnit (number n, const coeffs r)
 {
-  return nrzInit(1, r);
+  if (nrzGreaterZero(n, r))
+    return nrzInit(1, r);
+  else
+    return nrzInit(-1, r);
 }
 
 BOOLEAN nrzIsUnit (number a, const coeffs)

@@ -6,6 +6,44 @@
 /*
 * ABSTRACT: integers (as in ZZ)
 */
+
+/*-----------------------------------------------------------------*/
+/**
+**  'SR_INT' is the type of those integers small enough to fit into  29  bits.
+**  Therefor the value range of this small integers is: $-2^{28}...2^{28}-1$.
+**
+**  Small integers are represented by an immediate integer handle, containing
+**  the value instead of pointing  to  it,  which  has  the  following  form:
+**
+**      +-------+-------+-------+-------+- - - -+-------+-------+-------+
+**      | guard | sign  | bit   | bit   |       | bit   | tag   | tag   |
+**      | bit   | bit   | 27    | 26    |       | 0     | 0     | 1     |
+**      +-------+-------+-------+-------+- - - -+-------+-------+-------+
+**
+**  Immediate integers handles carry the tag 'SR_INT', i.e. the last bit is 1.
+**  This distuingishes immediate integers from other handles which  point  to
+**  structures aligned on 4 byte boundaries and therefor have last bit  zero.
+**  (The second bit is reserved as tag to allow extensions of  this  scheme.)
+**  Using immediates as pointers and dereferencing them gives address errors.
+**
+**  To aid overflow check the most significant two bits must always be equal,
+**  that is to say that the sign bit of immediate integers has a  guard  bit.
+**
+**  The macros 'INT_TO_SR' and 'SR_TO_INT' should be used to convert  between
+**  a small integer value and its representation as immediate integer handle.
+**/
+
+#define SR_HDL(A) ((long)(A))
+
+#define SR_INT    1L
+#define INT_TO_SR(INT)  ((number) (((long)INT << 2) + SR_INT))
+#define SR_TO_INT(SR)   (((long)SR) >> 2)
+#define IS_SMALL(A)     (SR_HDL(A) & SR_INT)
+#define INT_IS_SMALL(A) ( ((A << 1) >> 1) == A )
+
+#define MP_SMALL 1
+
+
 #ifdef HAVE_RINGS
 #include <coeffs/coeffs.h>
 

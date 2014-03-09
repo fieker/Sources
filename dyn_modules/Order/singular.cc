@@ -208,7 +208,6 @@ static void EltDelete(number * a, const coeffs r)
 BOOLEAN n_nfOrderInit(coeffs r,  void * parameter)
 {
   puts("nfOrderInit called");
-  Print("%s%d:%s: type is %d should be %d data %lx\n", __FILE__, __LINE__, __func__, getCoeffType(r), nforder_type, parameter);
   assume( getCoeffType(r) == nforder_type );
   r->nCoeffIsEqual=order_cmp;
   r->cfKillChar = NULL;
@@ -407,6 +406,24 @@ static BOOLEAN oneStep(leftv result, leftv arg)
   return FALSE;
 }
 
+static BOOLEAN nforder_simplify(leftv result, leftv arg)
+{
+  assume (arg->Typ()==nforder_type_id);
+  coeffs c = (coeffs)arg->Data();
+  assume (c->type = nforder_type);
+  nforder * o = (nforder*)c->data;
+
+  nforder *op = o->simplify();
+
+  result->rtyp=nforder_type_id; // set the result type
+  result->data=(char*)nInitChar(nforder_type, op);// set the result data
+  Print("result is %lx\n", result->data);
+  currRing->cf = (coeffs)result->data;
+
+  return FALSE;
+}
+
+
 
 
 
@@ -441,6 +458,30 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
   psModulFunctions->iiAddCproc(
           (currPack->libname? currPack->libname: ""),
           "EltFromMat",
+          FALSE, 
+          elt_from_mat); 
+
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "NFOrderSimplify",
+          FALSE, 
+          nforder_simplify); 
+
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "EltNorm",
+          FALSE, 
+          elt_from_mat); 
+
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "EltTrace",
+          FALSE, 
+          elt_from_mat); 
+
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "EltRepMat",
           FALSE, 
           elt_from_mat); 
 

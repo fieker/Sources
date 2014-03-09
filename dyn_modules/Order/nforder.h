@@ -26,6 +26,7 @@ private:
   ////////////////////////////////////
   ////////// Membervariablen /////////
   ////////////////////////////////////
+  int rc;
   number discriminant;
   int dimension;
   coeffs m_coeffs;
@@ -44,6 +45,9 @@ private:
   void init(); //basic initialisation
 public:
   void calcdisc(); // Berechnet Diskriminante
+  inline int ref_count_incref(){return rc++;};
+  inline int ref_count_decref(){return rc--;};
+  inline int ref_count(){return rc;};
   
   
   ////////////////////////////////////
@@ -56,6 +60,7 @@ public:
   
   ~nforder();
   void Print();
+  nforder *simplify(); //collapses a tower: multipy all bases together
 
   ////////////////////////////////////
   // +1 Zugriff auf Membervariablen //
@@ -69,7 +74,7 @@ public:
   bool getMult(bigintmat **m);
   nforder *getBase();
   bigintmat *getBasis();
-  number foundBasis(bigintmat *b); // Liefert Basis in Abhängigkeit von zu unterst liegenden Ordnung
+  bigintmat *viewBasis();
 
   inline bool oneIsOne() {return (flags & (1<<one_is_one)) != 0;}
   inline void setOneIsOne() {flags |= (1<<one_is_one);}
@@ -87,6 +92,9 @@ public:
   void elAdd(bigintmat *a, bigintmat *b);
   void elSub(bigintmat *a, bigintmat *b);
   void elMult(bigintmat *a, bigintmat *b);
+  number elTrace(bigintmat *a);
+  number elNorm(bigintmat *a);
+  bigintmat * elRepMat(bigintmat *a);
   
   ////////////////////////////////////
   //// +3 Funktionen für Round 2 /////
@@ -95,6 +103,7 @@ public:
   /* Liefert kleinste Primzahl >= p, die die Diskriminante quadratisch teilt  */
   void multmap(bigintmat *a, bigintmat *m);
   bigintmat *traceMatrix();
+
   void createmulttable(bigintmat **a);
   
 };
@@ -118,5 +127,6 @@ nforder *round2(nforder *o); // Benötigt Faktorisierung der Diskriminanten
 bigintmat *radicalmodpbase(nforder *o, number p, coeffs c);
 /* Berechnet die Basis mit Hilfe der langen Matrix  */
 number multring(bigintmat* nbase, nforder *o, number p);
+void nforder_delete(nforder *o);
 
 #endif

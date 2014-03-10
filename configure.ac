@@ -93,6 +93,8 @@ SING_CHECK_DBM
 SING_CHECK_GFANLIB
 SING_CHECK_POLYMAKE
 
+SING_CHECK_PLURAL
+
 ### the following is needed due to the use of om_sing_opt_show_mem in misc_ip.cc...
 #ac_configure_args="$ac_configure_args --with-external-config_h=../Singular/omSingularConfig.h"
 
@@ -218,6 +220,7 @@ AC_CONFIG_SUBDIRS([libpolys])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([xalloc/Makefile])
 AC_CONFIG_FILES([kernel/Makefile])
+AC_CONFIG_FILES([kernel/sample/Makefile]) # kernelsample
 AC_CONFIG_FILES([kernel/numeric/Makefile])
 
 AC_CONFIG_SUBDIRS([gfanlib])

@@ -17,6 +17,7 @@
 #include <math.h>
 #include <string.h>
 
+
 //#define BIMATELEM(M,I,J) (M)[ (M).index(I,J) ]
 
 bigintmat * bigintmat::transpose()
@@ -635,7 +636,6 @@ void bigintmat::pprint(int maxwid)
    // omFree(ps);
   }
 }
-
 
 
 void bigintmat::swap(int i, int j) {
@@ -1257,6 +1257,7 @@ bigintmat *bigintmat::elim(int i, int j)
   }
   return b;
 }
+#endif
 
 
 //returns d such that a/d is the inverse of the input

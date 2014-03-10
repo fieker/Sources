@@ -14,8 +14,6 @@
 
 #include <misc/auxiliary.h>
 
-#define SI_DONT_HAVE_GLOBAL_VARS
-
 #include <misc/auxiliary.h>
 #include "clapsing.h"
 
@@ -1465,7 +1463,6 @@ char* singclap_neworder ( ideal I, const ring r)
   Off(SW_RATIONAL);
   On(SW_SYMMETRIC_FF);
   CFList L;
-  poly p;
   if (rField_is_Q(r) || rField_is_Zp(r))
   {
     setCharacteristic( rChar(r) );
@@ -1550,20 +1547,6 @@ char* singclap_neworder ( ideal I, const ring r)
   char * s=StringEndS();
   if (s[strlen(s)-1]==',') s[strlen(s)-1]='\0';
   return s;
-}
-
-BOOLEAN singclap_isSqrFree(poly f, const ring r)
-{
-  BOOLEAN b=FALSE;
-  CanonicalForm F( convSingPFactoryP( f,r ) );
-  if((r->cf->type==n_Zp)&&(!F.isUnivariate()))
-      goto err;
-  b=(BOOLEAN)isSqrFree(F);
-  Off(SW_RATIONAL);
-  return b;
-err:
-  WerrorS( feNotImplemented );
-  return 0;
 }
 
 poly singclap_det( const matrix m, const ring s )

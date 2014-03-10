@@ -1,6 +1,12 @@
 ACLOCAL_AMFLAGS = -I ../../m4
 
-SOURCES = mod_main.cc bigintm.cc bigintm.h
+# moduledir = $(libexecdir)/singular/MOD
+
+if ENABLE_P_PROCS_DYNAMIC
+  noinst_LTLIBRARIES=bigintm.la 
+#  check_LTLIBRARIES=bigintm.la 
+  
+endif
 
 MYINCLUDES =  -I${top_srcdir} -I${top_builddir} -I${srcdir} \
 -I${top_srcdir}/libpolys -I${top_builddir}/libpolys \

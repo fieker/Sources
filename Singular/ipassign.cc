@@ -247,14 +247,28 @@ static BOOLEAN jjMINPOLY(leftv, leftv a)
     killhdl2(currRing->idroot,&(currRing->idroot),currRing);
   }
 
-  assume( currRing->cf->extRing->qideal == NULL );
-
   AlgExtInfo A;
 
   A.r = rCopy(currRing->cf->extRing); // Copy  ground field!
+  // if minpoly was already set:
+  if( currRing->cf->extRing->qideal != NULL ) id_Delete(&(A.r->qideal),A.r);
   ideal q = idInit(1,1);
-
-  assume( DEN((fraction)(p)) == NULL ); // minpoly must be a fraction with poly numerator...!!
+  if ((p==NULL) ||(NUM((fraction)p)==NULL))
+  {
+    Werror("Could not construct the alg. extension: minpoly==0");
+    // cleanup A: TODO
+    rDelete( A.r );
+    return TRUE;
+  }
+  if (DEN((fraction)(p)) != NULL) // minpoly must be a fraction with poly numerator...!!
+  {
+    poly z=NUM((fraction)p);
+    poly n=DEN((fraction)(p));
+    z=p_Mult_nn(z,pGetCoeff(n),currRing->cf->extRing);
+    NUM((fraction)p)=z;
+    DEN((fraction)(p))=NULL;
+    p_Delete(&n,currRing->cf->extRing);
+  }
 
   q->m[0] = NUM((fraction)p);
   A.r->qideal = q;
@@ -857,6 +871,16 @@ static BOOLEAN jiAssign_1(leftv l, leftv r)
   int i=0;
   if (lt==DEF_CMD)
   {
+    if (TEST_V_ALLWARN
+    && (rt!=RING_CMD)
+    && (rt!=QRING_CMD)
+    && (l->name!=NULL)
+    && (l->e==NULL)
+    && (iiCurrArgs==NULL) /* not in proc header */
+    )
+    {
+      Warn("use `%s` instead of `def`",Tok2Cmdname(rt));
+    }
     if (l->rtyp==IDHDL)
     {
       IDTYP((idhdl)l->data)=rt;

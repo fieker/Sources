@@ -12,6 +12,8 @@
 
 #include <omalloc/omalloc.h>
 
+#  include <factory/factory.h>
+
 #include <coeffs/bigintmat.h>
 #include <coeffs/coeffs.h>
 #include <coeffs/numbers.h>
@@ -33,6 +35,7 @@
 #include <Singular/mod_lib.h>
 #include <polys/weight.h>
 #include <polys/ext_fields/transext.h>
+#  include <polys/clapsing.h>
 
 #include <kernel/stairc.h>
 #include <kernel/mod2.h>
@@ -50,6 +53,9 @@
 #include <kernel/syz.h>
 #include <kernel/timer.h>
 
+#include <kernel/interpolation.h>
+#  include <kernel/kstdfac.h>
+#  include <kernel/fglm.h>
 
 #include <Singular/tok.h>
 #include <Singular/ipid.h>
@@ -62,18 +68,11 @@
 #include <Singular/ipprint.h>
 #include <Singular/attrib.h>
 #include <Singular/links/silink.h>
-#include <Singular/janet.h>
-#include <Singular/MinorInterface.h>
+#include <kernel/MinorInterface.h>
 #include <Singular/misc_ip.h>
 #include <Singular/linearAlgebra_ip.h>
 
-#  include <factory/factory.h>
-#  include <polys/clapsing.h>
-#  include <kernel/kstdfac.h>
-#  include <kernel/fglm.h>
 #  include <Singular/fglm.h>
-
-#include <Singular/interpolation.h>
 
 #include <Singular/blackbox.h>
 #include <Singular/newstruct.h>
@@ -89,7 +88,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
-
+#include <vector>
 
 lists rDecompose(const ring r);
 ring rCompose(const lists  L, const BOOLEAN check_comp=TRUE);
@@ -1370,6 +1369,13 @@ static BOOLEAN jjINDEX_I(leftv res, leftv u, leftv v)
     while (sh->next != NULL) sh=sh->next;
     sh->next=jjMakeSub(v);
   }
+  if (u->next!=NULL)
+  {
+    leftv rn=(leftv)omAlloc0Bin(sleftv_bin);
+    BOOLEAN bo=iiExprArith2(rn,u->next,iiOp,v);
+    res->next=rn;
+    return bo;
+  }
   return FALSE;
 }
 static BOOLEAN jjINDEX_IV(leftv res, leftv u, leftv v)
@@ -1735,11 +1741,12 @@ static BOOLEAN jjCHINREM_ID(leftv res, leftv u, leftv v)
   int return_type=c->m[0].Typ();
   if ((return_type!=IDEAL_CMD)
   && (return_type!=MODUL_CMD)
-  && (return_type!=MATRIX_CMD))
+  && (return_type!=MATRIX_CMD)
+  && (return_type!=POLY_CMD))
   {
     if((return_type!=BIGINT_CMD)&&(return_type!=INT_CMD))
     {
-      WerrorS("ideal/module/matrix expected");
+      WerrorS("poly/ideal/module/matrix expected");
       omFree(x); // delete c
       return TRUE;
     }
@@ -1756,7 +1763,16 @@ static BOOLEAN jjCHINREM_ID(leftv res, leftv u, leftv v)
         omFree(x); // delete c
         return TRUE;
       }
-      x[i]=((ideal)c->m[i].Data());
+      if (return_type==POLY_CMD)
+      {
+        x[i]=idInit(1,1);
+        x[i]->m[0]=(poly)c->m[i].CopyD();
+      }
+      else
+      {
+        x[i]=(ideal)c->m[i].CopyD();
+      }
+      //c->m[i].Init();
     }
   }
   else
@@ -1824,7 +1840,15 @@ static BOOLEAN jjCHINREM_ID(leftv res, leftv u, leftv v)
   {
     result=id_ChineseRemainder(x,q,rl,currRing);
     // deletes also x
-    res->data=(char *)result;
+    c->Clean();
+    if (return_type==POLY_CMD)
+    {
+      res->data=(char *)result->m[0];
+      result->m[0]=NULL;
+      idDelete(&result);
+    }
+    else
+      res->data=(char *)result;
   }
   for(i=rl-1;i>=0;i--)
   {
@@ -2361,7 +2385,7 @@ static BOOLEAN jjGCD_N(leftv res, leftv u, leftv v)
   else
   {
     if (nIsZero(b))  res->data=(char *)nCopy(a);
-    else res->data=(char *)nGcd(a, b, currRing);
+    else res->data=(char *)n_Gcd(a, b, currRing->cf);
   }
   return FALSE;
 }
@@ -2502,12 +2526,30 @@ static BOOLEAN jjINDEPSET2(leftv res, leftv u, leftv v)
 static BOOLEAN jjINTERSECT(leftv res, leftv u, leftv v)
 {
   res->data=(char *)idSect((ideal)u->Data(),(ideal)v->Data());
-  setFlag(res,FLAG_STD);
   return FALSE;
+}
+static BOOLEAN jjINTERPOLATION (leftv res, leftv l, leftv v)
+{
+  const lists L = (lists)l->Data();
+  const int n = L->nr; assume (n >= 0);
+  std::vector<ideal> V(n + 1);
+ 
+  for(int i = n; i >= 0; i--) V[i] = (ideal)(L->m[i].Data());
+   
+  res->data=interpolation(V, (intvec*)v->Data());
+  setFlag(res,FLAG_STD);
+  return errorreported;
 }
 static BOOLEAN jjJanetBasis2(leftv res, leftv u, leftv v)
 {
+  extern BOOLEAN jjStdJanetBasis(leftv res, leftv v,int flag);
   return jjStdJanetBasis(res,u,(int)(long)v->Data());
+}
+
+static BOOLEAN jjJanetBasis(leftv res, leftv v)
+{
+  extern BOOLEAN jjStdJanetBasis(leftv res, leftv v,int flag);
+  return jjStdJanetBasis(res,v,0);
 }
 static BOOLEAN jjJET_P(leftv res, leftv u, leftv v)
 {
@@ -5286,7 +5328,6 @@ BOOLEAN jjLOAD(const char *s, BOOLEAN autoexport)
 #define jjstrlen       (proc1)1
 #define jjpLength      (proc1)2
 #define jjidElem       (proc1)3
-#define jjmpDetBareiss (proc1)4
 #define jjidFreeModule (proc1)5
 #define jjidVec2Ideal  (proc1)6
 #define jjrCharStr     (proc1)7
@@ -5319,7 +5360,6 @@ void jjInitTab1()
         case (int)jjpLength:      dArith1[i].p=(proc1)pLength; break;
         case (int)jjidElem:       dArith1[i].p=(proc1)idElem; break;
         case (int)jjidVec2Ideal:  dArith1[i].p=(proc1)idVec2Ideal; break;
-        case (int)jjmpDetBareiss: dArith1[i].p=(proc1)mpDetBareiss; break;
         case (int)jjidFreeModule: dArith1[i].p=(proc1)idFreeModule; break;
         case (int)jjrCharStr:     dArith1[i].p=(proc1)rCharStr; break;
 #ifndef MDEBUG
@@ -5357,11 +5397,6 @@ static BOOLEAN jjpLength(leftv res, leftv v)
 static BOOLEAN jjidElem(leftv res, leftv v)
 {
   res->data = (char *)(long)idElem((ideal)v->Data());
-  return FALSE;
-}
-static BOOLEAN jjmpDetBareiss(leftv res, leftv v)
-{
-  res->data = (char *)mp_DetBareiss((matrix)v->Data(),currRing);
   return FALSE;
 }
 static BOOLEAN jjidFreeModule(leftv res, leftv v)
@@ -5451,7 +5486,6 @@ static BOOLEAN jjidTransp(leftv res, leftv v)
 #define jjstrlen       (proc1)strlen
 #define jjpLength      (proc1)pLength
 #define jjidElem       (proc1)idElem
-#define jjmpDetBareiss (proc1)mpDetBareiss
 #define jjidFreeModule (proc1)idFreeModule
 #define jjidVec2Ideal  (proc1)idVec2Ideal
 #define jjrCharStr     (proc1)rCharStr
@@ -8498,6 +8532,7 @@ int IsCmd(const char *n, int & tok)
     sArithBase.sCmds[i].name);
     sArithBase.sCmds[i].alias=1;
   }
+  #if 0
   if (currRingHdl==NULL)
   {
     #ifdef SIQ
@@ -8513,6 +8548,7 @@ int IsCmd(const char *n, int & tok)
     }
     #endif
   }
+  #endif
   if (!expected_parms)
   {
     switch (tok)

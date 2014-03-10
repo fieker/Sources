@@ -40,8 +40,6 @@
 #include "FLINTconvert.h"
 #endif
 
-int getExp(); /* cf_char.cc */
-
 //static bool isUnivariateBaseDomain( const CanonicalForm & f )
 //{
 //    CFIterator i = f;
@@ -779,14 +777,5 @@ CFFList sqrFree ( const CanonicalForm & f, bool sort )
       result.insert (buf);
     }
     return result;
-}
-
-bool isSqrFree ( const CanonicalForm & f )
-{
-//    ASSERT( f.isUnivariate(), "multivariate factorization not implemented" );
-    if ( getCharacteristic() == 0 )
-        return isSqrFreeZ( f );
-    else
-        return isSqrFreeFp( f );
 }
 

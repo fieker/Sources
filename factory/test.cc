@@ -1,26 +1,5 @@
 #include <factory/factory.h>
-#include <resources/feFopen.h>
 #include "cf_assert.h"
-
-int mmInit(void) {
-#ifdef SINGULAR
-// this is a hack to make linker baheave on Mac OS X 10.6.8 / 64 bit
-// since otherwise both debug and release DYNAMIC tests failed there with:
-/*
-dyld: lazy symbol binding failed: Symbol not found: __Z7feFopenPKcS0_
-Referenced from: ...BUILDDIR/factory/.libs/libfactory_g-3.1.3.dylib
-Expected in: flat namespace
-    
-dyld: Symbol not found: __Z7feFopenPKcS0_
-Referenced from: ...BUILDDIR/factory/.libs/libfactory_g-3.1.3.dylib
-Expected in: flat namespace
-*/
-const int f = (int)(long)(void*)feFopen;
-return (f ^ f) + 1; 
-#else
-return 1; 
-#endif
-}
 
 int test2 (int p)
 {
@@ -96,8 +75,6 @@ int test2 (int p)
   return 1;
 }*/
 
-extern void feInitResources(const char* argv0 = NULL);
-
 int main( int, char *argv[] )
 {
   int ret = 0;
@@ -110,8 +87,6 @@ int main( int, char *argv[] )
 
     return(1);
   }
-   
-  feInitResources(argv[0]);
 
 //  On (SW_USE_EZGCD); On (SW_USE_EZGCD_P); // TODO&NOTE: these switches lead to failed tests (with nonzero p)!
 

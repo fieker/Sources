@@ -1,36 +1,36 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-
 #ifdef HAVE_CONFIG_H
 #include "singularconfig.h"
 #endif /* HAVE_CONFIG_H */
+
 #include <kernel/mod2.h>
 #include <omalloc/omalloc.h>
 
 #include <coeffs/numbers.h>
+// #include <coeffs/longrat.h>
 
-#include <kernel/polys.h>
 #include <polys/monomials/ring.h>
 #include <polys/monomials/p_polys.h>
 #include <polys/kbuckets.h>
 
 #include <kernel/ideals.h>
-#include <libpolys/coeffs/longrat.h>
+#include <kernel/polys.h>
 #include <kernel/febase.h>
 #include <kernel/kutil.h>
 
-#include "subexpr.h"
-
+// #include "subexpr.h"
 
 #include "janet.h"
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <time.h>
 
 #if (defined(__CYGWIN__))
 #include <ctype.h>
 #endif
-
-#include <stdarg.h>
 
 
 //------GLOBALS-------
@@ -86,7 +86,7 @@ int ReducePolyLead(Poly *x,Poly *y)
 
 /*  poly b1=pDivide(x->root,y->root);
 
-  number gcd=nGcd(pGetCoeff(x->root),pGetCoeff(y->root),currRing);
+  number gcd=n_Gcd(pGetCoeff(x->root),pGetCoeff(y->root),currRing->cf);
 
   number a1=nDiv(pGetCoeff(y->root),gcd);
   pGetCoeff(b1)=nDiv(pGetCoeff(x->root),gcd);
@@ -132,7 +132,7 @@ int ReducePoly(Poly *x,poly from,Poly *y)
 
 /*  poly b1=pDivide(from,y->root);
 
-  number gcd=nGcd(pGetCoeff(from),pGetCoeff(y->root),currRing);
+  number gcd=n_Gcd(pGetCoeff(from),pGetCoeff(y->root),currRing->cf);
 
   number a1=nDiv(pGetCoeff(y->root),gcd);
   pGetCoeff(b1)=nDiv(pGetCoeff(from),gcd);
@@ -792,6 +792,7 @@ void DestroyFreeNodes()
   }
 }
 
+#if 0
 static void go_right(NodeM *current,poly_function disp)
 {
   if (current)
@@ -802,7 +803,6 @@ static void go_right(NodeM *current,poly_function disp)
   }
 }
 
-#if 0
 void ForEach(TreeM *t,poly_function disp)
 {
   go_right(t->root,disp);

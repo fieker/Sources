@@ -804,7 +804,7 @@ void    nrzCoeffWrite  (const coeffs, BOOLEAN /*details*/)
   PrintS("//   coeff. ring is : Integers\n");
 }
 
-static char* nrzCoeffString(const coeffs r)
+static char* nrzCoeffString(const coeffs)
 {
   return omStrDup("integer");
 }

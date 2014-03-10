@@ -50,9 +50,7 @@ libSingulardir = $(libdir)
 
 libSingular_la_CPPFLAGS = ${AM_CPPFLAGS} -DLIBSINGULAR
 
-SOURCES =    Minor.cc\
-   MinorInterface.cc\
-   MinorProcessor.cc\
+SOURCES = \
    links/asciiLink.cc\
    attrib.cc\
    blackbox.cc\
@@ -68,7 +66,6 @@ SOURCES =    Minor.cc\
    fglm.cc\
    gms.cc\
    grammar.cc\
-   interpolation.cc\
    iparith.cc\
    ipassign.cc\
    ipconv.cc\
@@ -76,12 +73,10 @@ SOURCES =    Minor.cc\
    iplib.cc\
    ipprint.cc\
    ipshell.cc\
-   janet.cc\
    libparse.cc\
    linearAlgebra_ip.cc\
    lists.cc\
    maps_ip.cc\
-   minpoly.cc\
    misc_ip.cc\
    mod_lib.cc\
    links/ndbm.cc\
@@ -110,11 +105,7 @@ SOURCES =    Minor.cc\
 
 libSingular_la_SOURCES   = $(SOURCES)
 
-SingularHEADERS =    Cache.h \
-   CacheImplementation.h \
-   Minor.h \
-   MinorInterface.h \
-   MinorProcessor.h \
+SingularHEADERS = \
    attrib.h \
    blackbox.h \
    cntrlc.h \
@@ -126,20 +117,17 @@ SingularHEADERS =    Cache.h \
    fglm.h \
    gms.h \
    grammar.h \
-   interpolation.h \
    idrec.h \
    ipconv.h \
    ipid.h \
    ipprint.h \
    ipshell.h \
-   janet.h \
    libparse.h \
    libsingular.h \
    linearAlgebra_ip.h\
    lists.h \
    locals.h \
    maps_ip.h \
-   minpoly.h \
    misc_ip.h \
    mmalloc.h \
    mod_lib.h \

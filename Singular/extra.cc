@@ -13,7 +13,6 @@
 #include <kernel/mod2.h>
 #include <misc/auxiliary.h>
 
-#define SI_DONT_HAVE_GLOBAL_VARS
 #include <factory/factory.h>
 
 
@@ -77,9 +76,12 @@
 #include <kernel/shiftgb.h>
 #include <kernel/linearAlgebra.h>
 
+#include <kernel/hutil.h>
+
 // for tests of t-rep-GB
 #include <kernel/tgb.h>
 
+#include <kernel/minpoly.h>
 
 #include "tok.h"
 #include "ipid.h"
@@ -91,7 +93,6 @@
 #include "fehelp.h"
 #include "distrib.h"
 
-#include "minpoly.h"
 #include "misc_ip.h"
 
 #include "attrib.h"
@@ -184,8 +185,6 @@
 #ifndef MAKE_DISTRIBUTION
 static BOOLEAN jjEXTENDED_SYSTEM(leftv res, leftv h);
 #endif
-
-extern BOOLEAN jjJanetBasis(leftv res, leftv v);
 
 #ifdef ix86_Win  /* PySingular initialized? */
 static int PyInitialized = 0;
@@ -2679,19 +2678,6 @@ static BOOLEAN jjEXTENDED_SYSTEM(leftv res, leftv h)
 //            WerrorS("ideal expected");
 //       }
 //       else
-  /*==================== isSqrFree =============================*/
-      if(strcmp(sys_cmd,"isSqrFree")==0)
-      {
-        if ((h!=NULL) &&(h->Typ()==POLY_CMD))
-        {
-          res->rtyp=INT_CMD;
-          res->data=(void *)(long) singclap_isSqrFree((poly)h->Data(), currRing);
-          return FALSE;
-        }
-        else
-          WerrorS("poly expected");
-      }
-      else
   /*==================== pDivStat =============================*/
   #if defined(PDEBUG) || defined(PDIV_DEBUG)
       if(strcmp(sys_cmd,"pDivStat")==0)
@@ -3152,6 +3138,18 @@ static BOOLEAN jjEXTENDED_SYSTEM(leftv res, leftv h)
       }
       else
   #endif
+  /*==================== Roune Hilb  =================*/
+       if (strcmp(sys_cmd, "hilbroune") == 0)
+       {
+         ideal I;
+         if ((h!=NULL) && (h->Typ()==IDEAL_CMD))
+         {
+           I=(ideal)h->CopyD();
+           slicehilb(I);
+         }
+         else return TRUE;
+         return FALSE;
+       }
   /*==================== minor =================*/
       if (strcmp(sys_cmd, "minor")==0)
       {

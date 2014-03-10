@@ -1,7 +1,8 @@
 ACLOCAL_AMFLAGS = -I ../m4
 # TODO: use ${top_srcdir} instead of .. in the above?
 
-SUBDIRS=numeric
+SUBDIRS=sample numeric
+# kernelsample   
 
 noinst_LTLIBRARIES = libkernel.la 
 ###### libkerneldir = $(libdir)/singular
@@ -27,7 +28,10 @@ SOURCES = polys.cc febase.cc feread.cc \
     tgb.cc tgbgauss.cc ringgb.cc f5data.cc f5lists.cc f5gb.cc f5c.cc \
     ratgring.cc shiftgb.cc \
     linearAlgebra.cc preimage.cc \
-    mod2.h
+    mod2.h \
+    janet.cc interpolation.cc minpoly.cc \
+    Minor.cc MinorInterface.cc MinorProcessor.cc
+ 
 
 libkernel_la_SOURCES   = $(SOURCES)
 
@@ -48,7 +52,9 @@ KERNELHEADERS = mod2.h polys.h hutil.h stairc.h ideals.h \
 	preimage.h timer.h kInline.h fast_mult.h \
 	digitech.h tgb.h ringgb.h tgbgauss.h tgb_internal.h \
 	linearAlgebra.h \
-	f5c.h f5data.h f5gb.h f5lists.h
+	f5c.h f5data.h f5gb.h f5lists.h \
+	janet.h interpolation.h minpoly.h \
+	Minor.h MinorInterface.h MinorProcessor.h Cache.h CacheImplementation.h
 
 libkernel_la_includedir  =${includedir}/singular/kernel
 libkernel_la_include_HEADERS   = $(KERNELHEADERS)
@@ -59,7 +65,8 @@ else
   USE_FACTORY =
 endif
 
-libkernel_la_LIBADD   =  ${builddir}/numeric/libnumeric.la ${top_builddir}/libpolys/polys/libpolys.la $(USE_FACTORY) 
+libkernel_la_LIBADD   = ${builddir}/sample/libsample.la ${builddir}/numeric/libnumeric.la \
+${top_builddir}/libpolys/polys/libpolys.la $(USE_FACTORY) 
 ### libkernel_la_LDFLAGS    = -release ${PACKAGE_VERSION}
 
 ### TODO: the following has to be addapted...

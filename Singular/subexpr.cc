@@ -535,7 +535,7 @@ void s_internalDelete(const int t,  void *d, const ring r)
       if ((R!=currRing)||(R->ref>=0))
         rKill(R);
       #ifdef TEST
-      else	
+      else
         Print("currRing? ref=%d\n",R->ref);
       #endif
       break;
@@ -953,8 +953,10 @@ int  sleftv::Typ()
       case VSHORTOUT:
         return INT_CMD;
       case VMINPOLY:
+        data=NULL;
         return NUMBER_CMD;
       case VNOETHER:
+        data=NULL;
         return POLY_CMD;
       //case COMMAND:
       //  return COMMAND;
@@ -1586,7 +1588,7 @@ void syMake(leftv v,const char * id, idhdl packhdl)
         && ((r_IsRingVar(id, currRing->names,currRing->N)>=0)
           || ((n_NumberOfParameters(currRing->cf)>0)
              &&(r_IsRingVar(id, (char**)n_ParameterNames(currRing->cf),
-	                        n_NumberOfParameters(currRing->cf))>=0))))
+                                n_NumberOfParameters(currRing->cf))>=0))))
         {
         // WARNING: do not use ring variable names in procedures
           Warn("use of variable >>%s<< in a procedure in line %s",id,my_yylinebuf);
@@ -1599,8 +1601,7 @@ void syMake(leftv v,const char * id, idhdl packhdl)
     {
       if (strcmp(id,IDID(currRingHdl))==0)
       {
-        if (IDID(currRingHdl)!=id) omFreeBinAddr((ADDRESS)id); /*assume strlen
-(id) <1000 */
+        if (IDID(currRingHdl)!=id) omFreeBinAddr((ADDRESS)id); /*assume strlen (id) <1000 */
         h=currRingHdl;
         goto id_found;
       }
@@ -1744,16 +1745,23 @@ int sleftv::Eval()
         {
           if (d->argc>=1) nok=d->arg1.Eval();
           if ((!nok) && (d->argc>=2))
-          { nok=d->arg2.Eval(); d->arg1.next=&d->arg2; }
+          {
+            nok=d->arg2.Eval();
+            d->arg1.next=(leftv)omAllocBin(sleftv_bin);
+            memcpy(d->arg1.next,&d->arg2,sizeof(sleftv));
+            d->arg2.Init();
+          }
           if ((!nok) && (d->argc==3))
-          { nok=d->arg3.Eval(); d->arg2.next=&d->arg3; }
+          {
+            nok=d->arg3.Eval();
+            d->arg1.next->next=(leftv)omAllocBin(sleftv_bin);
+            memcpy(d->arg1.next->next,&d->arg3,sizeof(sleftv));
+            d->arg3.Init();
+          }
           if (d->argc==0)
             nok=nok||iiExprArithM(this,NULL,d->op);
           else
             nok=nok||iiExprArithM(this,&d->arg1,d->op);
-          d->arg1.next=NULL;
-          d->arg2.next=NULL;
-          d->arg3.next=NULL;
         }
         else
         {

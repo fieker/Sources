@@ -395,7 +395,8 @@ void cancelunit (LObject* L,BOOLEAN inNF)
       i++;
       if (p_GetExp(p,i,r) > p_GetExp(h,i,r)) return ; // does not divide
       #ifdef HAVE_RINGS
-      ///should check also if the lc is a zero divisor, if it divides all the others
+      // Note: As long as qring j forbidden if j contains integer (i.e. ground rings are 
+      //       domains), no zerodivisor test needed  CAUTION
       if (rField_is_Ring(currRing) && currRing->OrdSgn == -1)
               if(n_DivBy(p_GetCoeff(h,r->cf),lc,r->cf) == 0)
                       return;
@@ -724,8 +725,8 @@ BOOLEAN kTest_T(TObject * T, ring strat_tailRing, int i, char TN)
     pFalseReturn(p_Test(T->p, currRing));
   }
 
-  if (i >= 0 && T->pLength != 0
-  && ! rIsSyzIndexRing(currRing) && T->pLength != pLength(p))
+  if ((i >= 0) && (T->pLength != 0)
+  && (! rIsSyzIndexRing(currRing)) && (T->pLength != pLength(p)))
   {
     int l=T->pLength;
     T->pLength=pLength(p);
@@ -3483,7 +3484,7 @@ void enterExtendedSpoly(poly h,kStrategy strat)
     go = true;
   }
   else
-    gcd = nGcd((number) 0, pGetCoeff(h), strat->tailRing);
+    gcd = n_Gcd((number) 0, pGetCoeff(h), strat->tailRing->cf);
   if (go || !nIsOne(gcd))
   {
     poly p = h->next;
@@ -5509,6 +5510,7 @@ poly redtailBba (LObject* L, int pos, kStrategy strat, BOOLEAN withT, BOOLEAN no
   if (strat->redTailChange)
   {
     L->length = 0;
+    L->pLength = 0;
   }
 
   //if (TEST_OPT_PROT) { PrintS("N"); mflush(); }

@@ -391,9 +391,9 @@ char* bigintmat::String()
 
 void bigintmat::Print()
 {
-  StringSetS("");
-  Write();
-  ::Print("%s\n", StringEndS());
+  char * s = String();
+  PrintS(s);
+  omFree(s);
 }
 
 
@@ -445,35 +445,35 @@ char* bigintmat::StringAsPrinted()
             ps[pos+colwid[cj]-phl+j] = ph[j];
         }
         omFree(ph);
-      }
-      else  // Mit Leerzeichen auffüllen und zahl reinschreiben
-      {
-        for (int j=0; j<colwid[cj]-_nl; j++)
-          ps[pos+j] = ' ';
-        for (int j=0; j<_nl; j++)
-          ps[pos+colwid[cj]-_nl+j] = ts[j];
-      }
-      // ", " und (evtl) "\n" einfügen
-      if ((i+1)%col == 0)
-      {
-        if (i != col*row-1)
-        {
-          ps[pos+colwid[cj]] = ',';
-          ps[pos+colwid[cj]+1] = '\n';
-          pos += colwid[cj]+2;
-        }
-      }
-      else
+    }
+    else  // Mit Leerzeichen auffüllen und zahl reinschreiben
+    {
+      for (int j=0; j<colwid[cj]-_nl; j++)
+        ps[pos+j] = ' ';
+      for (int j=0; j<_nl; j++)
+        ps[pos+colwid[cj]-_nl+j] = ts[j];
+    }
+    // ", " und (evtl) "\n" einfügen
+    if ((i+1)%col == 0)
+    {
+      if (i != col*row-1)
       {
         ps[pos+colwid[cj]] = ',';
-        pos += colwid[cj]+1;
+        ps[pos+colwid[cj]+1] = '\n';
+        pos += colwid[cj]+2;
       }
+    }
+    else
+    {
+      ps[pos+colwid[cj]] = ',';
+      pos += colwid[cj]+1;
+    }
 
       omFree(ts);  // Hier ts zerstören
-    }
-    return(ps);
-    // omFree(ps);
   }
+  return(ps);
+  // omFree(ps);
+}
 }
 
 int intArrSum(int * a, int length)
@@ -545,7 +545,7 @@ int * bigintmat::getwid(int maxwid)
       wv[col*i+j] = _nl;
       if (_nl > cwv[j])
         cwv[j]=_nl;
-      omFree(tmp);
+        omFree(tmp);
     }
   }
 
@@ -556,7 +556,7 @@ int * bigintmat::getwid(int maxwid)
     cwv[j] = getShorter(wv, cwv[j], j, col, row);
   }
   omFree(wv);
-  return cwv;
+return cwv;
 }
 
 void bigintmat::pprint(int maxwid)
@@ -605,7 +605,7 @@ void bigintmat::pprint(int maxwid)
           for (int j=0; j<phl; j++)
             ps[pos+colwid[cj]-phl+j] = ph[j];
         }
-        omFree(ph);
+          omFree(ph);
       }
       else  // Mit Leerzeichen auffüllen und zahl reinschreiben
       {
@@ -633,7 +633,7 @@ void bigintmat::pprint(int maxwid)
       omFree(ts);  // Hier ts zerstören
     }
     PrintS(ps);
-   // omFree(ps);
+    omFree(ps);
   }
 }
 
@@ -644,14 +644,12 @@ void bigintmat::swap(int i, int j) {
     number t;
     for (int k=1; k<=row; k++) {
       tmp = get(k, i);
-      t = get(k, j);
+      t = view(k, j);
       set(k, i, t);
       set(k, j, tmp);
-      n_Delete(&t, basecoeffs());
       n_Delete(&tmp, basecoeffs());
     }
-  }
-  else
+  } else
     Werror("Error in swap");
 }
 
@@ -661,11 +659,10 @@ void bigintmat::swaprow(int i, int j) {
     number t;
     for (int k=1; k<=col; k++) {
       tmp = get(i, k);
-      t = get(j, k);
+      t = view(j, k);
       set(i, k, t);
       set(j, k, tmp);
       n_Delete(&tmp, basecoeffs());
-      n_Delete(&t, basecoeffs());
     }
   }
   else
@@ -895,10 +892,9 @@ bool bigintmat::skalmult(number b, coeffs c)
   {
     for (int j=1; j<=col; j++)
     {
-      t1 = get(i, j);
+      t1 = view(i, j);
       t2 = n_Mult(t1, b, basecoeffs());
       set(i, j, t2);
-      n_Delete(&t1, basecoeffs());
       n_Delete(&t2, basecoeffs());
     }
   }
@@ -1203,8 +1199,7 @@ void bigintmat::one() {
       for (int j=1; j<=col; j++) {
         if (i==j) {
           set(i, j, one);
-        }
-        else {
+        } else {
           set(i, j, zero);
         }
       }
@@ -1257,7 +1252,6 @@ bigintmat *bigintmat::elim(int i, int j)
   }
   return b;
 }
-#endif
 
 
 //returns d such that a/d is the inverse of the input
@@ -1411,6 +1405,7 @@ number bigintmat::hnfdet()
     prod = temp2;
     n_Delete(&temp, basecoeffs());
   }
+  delete m;
   return prod;
 }
 
@@ -1445,14 +1440,14 @@ void bigintmat::hnf()
   // Keine 100%ige HNF, da Einträge rechts von Diagonalen auch kleiner 0 sein können
   // Laufen von unten nach oben und von links nach rechts
 
-  if (getCoeffType(basecoeffs()) == n_Q) {
-    coeffs s = nInitChar(n_Z, NULL);
-    bigintmat *m = bimChangeCoeff(this, s);
+#if 0
+    char * s;
     ::Print("mat over Z is \n");
-    ::Print("%s\n(%d x %d)\n", m->String(), m->rows(), m->cols());
-    m->hnf();
-    ::Print("hnf over Z is\n%s\n", m->String());
-  }
+    ::Print("%s\n", s = basecoeffs()->cfCoeffString(basecoeffs()));
+    omFree(s);
+    Print();
+    ::Print("\n(%d x %d)\n", rows(), cols());
+#endif
 
   int i = rows();
   int j = cols();
@@ -1515,11 +1510,13 @@ void bigintmat::hnf()
               n_Write(co3, basecoeffs()); StringAppendS("\t");
               n_Write(co4, basecoeffs()); StringAppendS("\t");
               Print("%s\nfor l=%d\n", StringEndS(), l);
-              Print("to %s\n", String());
+              {char * s = String();
+              Print("to %s\n", s);omFree(s)}
 #endif
               coltransform(l, l+1, co3, co4, co1, co2);
 #ifdef CF_DEB              
-              Print("gives  %s\n", String());
+              {char * s = String();
+              Print("gives %s\n", s);}
 #endif
             }
             n_Delete(&co1, basecoeffs());
@@ -1565,6 +1562,12 @@ void bigintmat::hnf()
   n_Delete(&co1, basecoeffs());
   n_Delete(&co2, basecoeffs());
   n_Delete(&one, basecoeffs());
+
+#if 0
+    ::Print("hnf over Z is \n");
+    Print();
+    ::Print("\n(%d x %d)\n", rows(), cols());
+#endif
 }
 
 void bigintmat::modhnf2(number p, coeffs c)
@@ -1762,6 +1765,7 @@ bigintmat *bigintmat::modgauss(number p, coeffs c) {
     }
     n_Delete(&temp, m->basecoeffs());
   }
+  delete m;
   return bimChangeCoeff(m, basecoeffs());
 }
 
@@ -1842,6 +1846,7 @@ void bigintmat::mod(number p, coeffs c)
       n_Delete(&tmp2, coe);
     }
   }
+  nKillChar(coe);
 }
 
 //coerce matrix to Z/pZ of type n_Zn
@@ -1927,6 +1932,7 @@ coeffs numbercoeffs(number n, coeffs c) {
   pp->base = p;
   pp->exp = 1;
   coeffs nc = nInitChar(n_Zn, (void*)pp);
+  delete pp;
   return nc;
 }
 

@@ -1765,8 +1765,9 @@ bigintmat *bigintmat::modgauss(number p, coeffs c) {
     }
     n_Delete(&temp, m->basecoeffs());
   }
+  bigintmat * cc = bimChangeCoeff(m, basecoeffs());
   delete m;
-  return bimChangeCoeff(m, basecoeffs());
+  return cc;
 }
 
 //exactly divide matrix by b

@@ -58,6 +58,12 @@ static char* nrnCoeffString(const coeffs r)
   return s;
 }
 
+static void nrnKillChar(coeffs r) 
+{
+  mpz_clear(r->modNumber);
+  mpz_clear(r->modBase);
+}
+
 /* for initializing function pointers */
 BOOLEAN nrnInitChar (coeffs r, void* p)
 {
@@ -111,7 +117,7 @@ BOOLEAN nrnInitChar (coeffs r, void* p)
   r->cfCoeffWrite  = nrnCoeffWrite;
   r->nCoeffIsEqual = nrnCoeffsEqual;
   r->cfInit_bigint = nrnMapQ;
-  r->cfKillChar    = ndKillChar;
+  r->cfKillChar    = nrnKillChar;
 #ifdef LDEBUG
   r->cfDBTest      = nrnDBTest;
 #endif
@@ -645,6 +651,18 @@ number nrnMapGMP(number from, const coeffs /*src*/, const coeffs dst)
   return (number)erg;
 }
 
+number nrnMapZ(number from, const coeffs /*src*/, const coeffs dst)
+{
+  int_number erg = (int_number)omAllocBin(gmp_nrz_bin);
+  if (IS_SMALL(from))
+    mpz_init_set_si(erg, SR_TO_INT(from));
+  else
+    mpz_init_set(erg, (int_number) from);
+  mpz_mod(erg, erg, dst->modNumber);
+  return (number)erg;
+}
+
+
 number nrnMapQ(number from, const coeffs src, const coeffs dst)
 {
   int_number erg = (int_number)omAllocBin(gmp_nrz_bin);
@@ -659,7 +677,7 @@ nMapFunc nrnSetMap(const coeffs src, const coeffs dst)
   /* dst = currRing->cf */
   if (nCoeff_is_Ring_Z(src))
   {
-    return nrnMapGMP;
+    return nrnMapZ;
   }
   if (nCoeff_is_Q(src))
   {

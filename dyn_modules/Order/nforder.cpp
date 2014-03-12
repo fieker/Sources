@@ -530,13 +530,14 @@ bigintmat *radicalmodpbase(nforder *o, number p, coeffs c) {
 }
 
 void rowhnf(bigintmat * b) {
-  bigintmat * n = b->transpose();
+  bigintmat * n = b->transpose(), *m;
 //  for(int i=1; i<= n->rows() /2; i++)
 //    n->swaprow(i, n->rows()-i+1);
   n->hnf();
-  n =  n->transpose();
-  b->copy(n);
+  m =  n->transpose();
+  b->copy(m);
   delete n;
+  delete m;
 }
 
 number multring(bigintmat *nbase, nforder *o, number p) {

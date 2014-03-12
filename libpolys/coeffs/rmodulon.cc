@@ -61,7 +61,9 @@ static char* nrnCoeffString(const coeffs r)
 static void nrnKillChar(coeffs r) 
 {
   mpz_clear(r->modNumber);
-  mpz_clear(r->modBase);
+//  mpz_clear(r->modBase); //CF: difficult: in biginmat.cc we're creating
+//                         // a modBase but cannot create legally one that can
+//                         // freed.
 }
 
 /* for initializing function pointers */

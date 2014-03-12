@@ -45,8 +45,16 @@ static BOOLEAN order_cmp(coeffs n, n_coeffType t, void*parameter)
   return (t==nforder_type) && (n->data == parameter);
 }
 
-//static void KillChar(coeffs r); //  undo all initialisations
-                                // or NULL
+static void KillChar(coeffs r) {
+  Print("KillChar %lx\n", r);
+}
+#ifdef LDEBUG
+  BOOLEAN EltDBTest(number, const char *, const int, const coeffs)
+{
+    return TRUE;
+}
+#endif
+
 static void SetChar(const coeffs r)
 {
   Print("%s called\n", __func__);
@@ -210,7 +218,7 @@ BOOLEAN n_nfOrderInit(coeffs r,  void * parameter)
   puts("nfOrderInit called");
   assume( getCoeffType(r) == nforder_type );
   r->nCoeffIsEqual=order_cmp;
-  r->cfKillChar = NULL;
+  r->cfKillChar = KillChar;
   r->cfSetChar = SetChar;
   r->cfCoeffString=CoeffString;
   r->cfCoeffWrite=WriteRing;
@@ -241,6 +249,9 @@ BOOLEAN n_nfOrderInit(coeffs r,  void * parameter)
   r->cfPower = EltPowerSmall;
   r->cfDelete = EltDelete;
   r->cfSetMap = EltSetMap;
+#ifdef LDEBUG
+  r->cfDBTest = EltDBTest;
+#endif
   return FALSE;
 }
 
@@ -266,7 +277,7 @@ static char * nforder_String(blackbox *b, void *d)
   else StringAppend("Coeff(%d)",c->type);
   Print("d: %lx\n", d);
   if (d && c->data) ((nforder *)(c->data))->Print();
-  return omStrDup(StringEndS());
+  return StringEndS();
 }
 static void * nforder_Copy(blackbox*b, void *d)
 {  coeffs c=(coeffs)d; if (c!=NULL) c->ref++;return d; }
@@ -335,6 +346,7 @@ static BOOLEAN build_ring(leftv result, leftv arg)
     arg = arg->next;
   }
   nforder *o = new nforder(dimension, multtable, nInitChar(n_Z, 0));
+  omFree(multtable);
   result->rtyp=nforder_type_id; // set the result type
   result->data=(char*)nInitChar(nforder_type, o);// set the result data
   Print("result is %lx\n", result->data);

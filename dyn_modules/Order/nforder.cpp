@@ -81,7 +81,9 @@ void nforder::Print() {
     ::Print("and discriminant: ");
     StringSetS("");
     n_Write(discriminant, m_coeffs);
-    ::Print("%s\n", StringEndS());
+    char *s =StringEndS();
+    ::Print("%s\n", s);
+    omFree(s);
   }
 //  coeffs
   if (multtable) {
@@ -89,6 +91,7 @@ void nforder::Print() {
     for(int i=0; i<dimension; i++) {
       char * m = multtable[i]->String();
       ::Print("%d: %s\n", i, m);
+      omFree(m);
     }
   }
 
@@ -98,10 +101,13 @@ void nforder::Print() {
     ::Print("with basis:\n");
     char * m = basis->String();
     ::Print("%s", m);
+    omFree(m);
     ::Print("and denominator: ");
     StringSetS("");
     n_Write(divisor, m_coeffs);
-    ::Print("%s\n", StringEndS());
+    char * s;
+    ::Print("%s\n", s = StringEndS());
+    omFree(s);
   }
 
   ::Print("Flags: %lx\n", flags);
@@ -140,7 +146,7 @@ nforder::~nforder() {
 /*_______________-1_______________ */
 void nforder::calcdisc() {
   // Determinante von Spurmatrix ist die Discriminante
-  puts("calcdisc called");
+  if (discriminant) return;
   if (baseorder == NULL) {
     bigintmat *m = traceMatrix();
     discriminant = m->det();
@@ -534,25 +540,43 @@ void rowhnf(bigintmat * b) {
 }
 
 number multring(bigintmat *nbase, nforder *o, number p) {
+  coeffs R = o->basecoeffs();
   number divi;
   int n = o->getDim();
-  bigintmat *inv = new bigintmat(n, n, o->basecoeffs());
+  Print("The multring of\n");
+  o->Print();
+  Print(" at ");
+  n_Print(p, R);
+  Print("\n has basis:\n");
+  nbase->Print();
+  Print("\n*************************************\n");
+
+
+
+  bigintmat *inv = new bigintmat(n, n, R);
   divi = nbase->pseudoinv(inv);
+  Print("Pseudo inv of ");
+  nbase->Print();
+  Print(" is ");
+  inv->Print();
+  Print(" over ");
+  n_Print(divi, R);
+  Print("\n****************************************\n");
+
   // Zusammenbau der "langen" Matrix
-  bigintmat *lon = new bigintmat(n, n, o->basecoeffs());
+  bigintmat *lon = new bigintmat(n, 0, R);
   bigintmat *oldlon;
-  bigintmat *mm = new bigintmat(n, n, o->basecoeffs());
-  bigintmat *temp = new bigintmat(1, n, o->basecoeffs());
-  bigintmat *nochnetemp = new bigintmat(n, n, o->basecoeffs());
+  bigintmat *mm = new bigintmat(n, n, R);
+  bigintmat *temp = new bigintmat(1, n, R);
+  bigintmat *nochnetemp = new bigintmat(n, n, R);
 
   for (int i=1; i<=n; i++) {
     nbase->getrow(i, temp);
     o->multmap(temp, mm);
     bimMult(mm, inv, nochnetemp);
     mm->copy(nochnetemp);
-    oldlon = new bigintmat(lon);
-    delete lon;
-    lon = new bigintmat(n, (i+1)*n, o->basecoeffs());
+    oldlon = lon;
+    lon = new bigintmat(n, (i)*n, o->basecoeffs());
     lon->concatcol(oldlon, mm);
     delete oldlon;
   }
@@ -561,16 +585,22 @@ number multring(bigintmat *nbase, nforder *o, number p) {
 
   number p2, zwei;
   zwei = n_Init(2, o->basecoeffs());
-  p2 = n_Mult(p, zwei, o->basecoeffs());
-  lon->modhnf2(p2, o->basecoeffs());
-  
+  p2 = n_Mult(p, p, o->basecoeffs());
+  if (1) {
+    bigintmat * cmp = lon->modhnf(p2, o->basecoeffs());
+    delete lon;
+    lon = cmp;
+  } else {
+    lon->hnf();
+  }
+
   n_Delete(&zwei, o->basecoeffs());
   n_Delete(&p2, o->basecoeffs());
   bigintmat *red = new bigintmat(n, n, o->basecoeffs());
   bigintmat *ttemp = new bigintmat(n, 1, o->basecoeffs());
   
   for (int i=1; i<=n; i++) {
-    lon->getcol(n*n+i, ttemp);
+    lon->getcol((n-1)*n+i, ttemp);
     red->setcol(i, ttemp);
   }
   number divisor = red->pseudoinv(nbase);
@@ -591,6 +621,8 @@ nforder *onestep(nforder *o, number p, coeffs c) {
   // Berechne F_p-Basis von I_p/pI_p
   bigintmat *basis;
   basis = radicalmodpbase(o, p, c);
+
+
   // Wir benötigen die Matrix Zeilen- statt Spaltenweise
   bigintmat *tmp = basis->transpose();
   delete basis;

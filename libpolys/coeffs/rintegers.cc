@@ -952,6 +952,13 @@ static number nrzConvFactoryNSingN( const CanonicalForm n, const coeffs r)
   }
 }
 
+static void nrzMPZ(mpz_t res, number &a, const coeffs)
+{
+  if (IS_SMALL(a))
+    mpz_init_set_si(res, SR_TO_INT(a));
+  else
+    mpz_init_set(res, (int_number) a);
+}
 
 BOOLEAN nrzInitChar(coeffs r,  void *)
 {
@@ -998,6 +1005,7 @@ BOOLEAN nrzInitChar(coeffs r,  void *)
   r->cfCoeffWrite = nrzCoeffWrite;
   r->convSingNFactoryN = nrzConvSingNFactoryN;
   r->convFactoryNSingN = nrzConvFactoryNSingN;
+  r->cfMPZ = nrzMPZ;
 
   // debug stuff
 

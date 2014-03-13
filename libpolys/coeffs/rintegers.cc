@@ -917,7 +917,7 @@ void    nrzCoeffWrite  (const coeffs, BOOLEAN /*details*/)
 
 static char* nrzCoeffString(const coeffs)
 {
-  return omStrDup("integer");
+  return omStrDup("ZZ");
 }
 
 static CanonicalForm nrzConvSingNFactoryN( number n, BOOLEAN setChar, const coeffs /*r*/ )

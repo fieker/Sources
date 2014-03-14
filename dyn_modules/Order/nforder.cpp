@@ -35,12 +35,12 @@ nforder::nforder(int dim, bigintmat **m,const coeffs q) {
   for (int i=0; i<dim; i++) {
     multtable[i] = new bigintmat(m[i]);
   }
+  basis = NULL;
+  inv_basis = NULL;
 }
 
 nforder::nforder(nforder *o, bigintmat *base, number div, const coeffs q) {
    init();
-   ::Print("base matrix");
-   base->Print();
    m_coeffs = q;  
    basis = new bigintmat(base);
    //neue Ordnung erzeugen und übergebene Daten kopieren
@@ -52,12 +52,17 @@ nforder::nforder(nforder *o, bigintmat *base, number div, const coeffs q) {
    basis->simplifyContentDen(&divisor);
    dimension = o->getDim();
    discriminant = NULL;
+
+   inv_basis = new bigintmat(base->rows(), base->rows(), q);
+   inv_divisor = basis->pseudoinv(inv_basis);
+   inv_basis->skalmult(divisor, q);
+   inv_basis->simplifyContentDen(&inv_divisor);
 }
 
 nforder::nforder(nforder *o, int) {
   init();
   m_coeffs = o->basecoeffs();
-  ::Print("copy called: %lx\n", m_coeffs);
+  ::Print("copy called: %lx\n", (long unsigned int) m_coeffs);
   // Kopiert die Daten der übergebenen Ordnung auf die erzeugte
   if (o->discriminant)
     discriminant = n_Copy(o->discriminant,  basecoeffs());
@@ -75,54 +80,59 @@ nforder::nforder(nforder *o, int) {
     divisor = n_Copy(o->divisor,  basecoeffs());
 }
 
-void nforder::Print() {
-  ::Print("Order:\nof dimension %d and rc: %d\n", dimension, ref_count());
+void nforder::Write() {
+  StringAppend("Order:\nof dimension %d and rc: %d\n", dimension, ref_count());
   if (discriminant && !n_IsZero(discriminant, m_coeffs)) {
-    ::Print("and discriminant: ");
-    StringSetS("");
+    StringAppend("and discriminant: ");
     n_Write(discriminant, m_coeffs);
-    char *s =StringEndS();
-    ::Print("%s\n", s);
-    omFree(s);
+    StringAppend("\n");
   }
 //  coeffs
   if (multtable) {
-    ::Print("Multiplication table:\n");
+    StringAppend("Multiplication table:\n");
     for(int i=0; i<dimension; i++) {
-      char * m = multtable[i]->String();
-      ::Print("%d: %s\n", i, m);
-      omFree(m);
+      StringAppend("%d: ", i);
+      multtable[i]->Write();
+      StringAppendS("\n");
     }
   }
 
   if (baseorder) {
-    ::Print("as extension of: ");
-    baseorder->Print();
-    ::Print("with basis:\n");
-    char * m = basis->String();
-    ::Print("%s", m);
-    omFree(m);
-    ::Print("and denominator: ");
-    StringSetS("");
+    StringAppendS("as extension of:");
+    baseorder->Write();
+    StringAppendS("with basis:\n");
+    basis->Write();
+    StringAppendS("and denominator: ");
     n_Write(divisor, m_coeffs);
-    char * s;
-    ::Print("%s\n", s = StringEndS());
-    omFree(s);
+    StringAppendS("\nwith inv_basis:\n");
+    inv_basis->Write();
+    StringAppendS("and inv_denominator: ");
+    n_Write(inv_divisor, m_coeffs);
+    StringAppendS("\n");
   }
 
-  ::Print("Flags: %lx\n", flags);
+  StringAppend("Flags: %lx\n", flags);
 }
 
+char * nforder::String() {
+  StringSetS("");
+  Write();
+  return StringEndS();
+}
+void nforder::Print() {
+  char * s = String();
+  PrintS(s);
+  PrintS("\n");
+  omFree(s);
+}
 void nforder_delete(nforder* o) {
   if (o->ref_count_decref()>0) {
-    Print("rc too large, not deleting\n");
     return;
   }
   delete o;
 }
 // Was bei Desktruktor ändern?
 nforder::~nforder() {
-  ::Print("Deleting %lx\n", this);
   if (multtable != NULL) {
     // Falls es eine Multtable gab, werden zunächst sämtliche n Matrizen gelöscht, und anschließend das (durch malloc) erzeugte Array of Matrix
     for (int i=0; i<dimension; i++)
@@ -156,15 +166,14 @@ void nforder::calcdisc() {
   {
     puts("not easy");
     number prod = n_Init(1, basecoeffs());
-    number tmp, tmp2;
+    number tmp, tmp2; //assumes that the basis is triangular!
     for (int i=1; i<=dimension; i++) {
-      tmp2 = basis->get(i, i);
+      tmp2 = basis->view(i, i);
       tmp = n_Mult(prod, tmp2, basecoeffs());
-      n_Delete(&tmp2, basis->basecoeffs());
       n_Delete(&prod, basecoeffs());
       prod = tmp;
     }
-    number disc = baseorder->getDisc();
+    number disc = baseorder->viewDisc();
     number detquad = n_Mult(prod, prod, basis->basecoeffs());
     discriminant = n_Mult(disc, detquad, basecoeffs());
 
@@ -174,7 +183,6 @@ void nforder::calcdisc() {
       discriminant = tmp;
     }
     n_Delete(&detquad, basis->basecoeffs());
-    n_Delete(&disc, baseorder->basecoeffs());
   }
 }
 
@@ -184,8 +192,6 @@ bigintmat *nforder::traceMatrix() {
   bigintmat *base2 = new bigintmat(1, dimension, basecoeffs());
   bigintmat *mm = new bigintmat(dimension, dimension, basecoeffs());
   number sum;
-  number temp;
-  number t1;
   
   for (int i=1; i<=dimension; i++) {
     for (int j=i; j<=dimension; j++) {
@@ -346,22 +352,17 @@ void nforder::elMult(bigintmat *a, bigintmat *b) {
     }
     else {
     // Multiplikation mit hilfe von baseorder:
-      bigintmat *suma, *sumb;
-      suma = new bigintmat(1, dimension, a->basecoeffs());
-      sumb = new bigintmat(1, dimension, a->basecoeffs());
+      bigintmat *sumb = new bigintmat(1, dimension, a->basecoeffs());
     // Produkt von a (b) mit basis liefert Koeff-Vektor von a*divisor (b*divisor) in baseorder
-      bimMult(a, basis, suma);
+      bimMult(a, basis, a);
       bimMult(b, basis, sumb);
       // Multipliziere Elemente in baseorder (und speichere in suma)
-      baseorder->elMult(suma, sumb);
-      // Dividiere einmal den Nenner heraus, um Koeff-Vektor von a*b*divisor in baseorder zu erhalten
-      suma->skaldiv(divisor);
-      // Löse das Gleichungssysten x*A = b, wobei A = basis, und b = Koeffvektor von a*b*divisor in baseorder.
-      // Die Lösung wird durch den Nenner der Lösung (Rückgabewert von solvexA) geteilt (geht hier immer auf, da wir eine Basis haben)
-      // und enthält dann den Koeff-Vektor von a*b in this (Ergebnis wird wieder in a gespeichert)
-      a->skaldiv(solvexA(basis, suma, a));
-      delete suma;
+      baseorder->elMult(a, sumb);
       delete sumb;
+      a->skaldiv(divisor);
+      bimMult(a, inv_basis, a);
+      a->skaldiv(inv_divisor);
+      a->skaldiv(divisor);
     }
   }
 }
@@ -446,8 +447,7 @@ bigintmat *radicalmodpbase(nforder *o, number p, coeffs c) {
     // Falls Primzahl größer gleich Dimension der Ordnung, so berechne Kern der Spurmatrix modulo p.
     m = o->traceMatrix();
     bas = new bigintmat(n, 1, o->basecoeffs());
-  }
-  else {
+  } else {
     // Sonst: Berechne Kern der Abbildung x -> x^(p^j) mod p, wobei j>0 mit p^j >= dimension
     int j = 1;
     // ex als number, oder reicht long long int?
@@ -492,7 +492,6 @@ bigintmat *radicalmodpbase(nforder *o, number p, coeffs c) {
   
   bigintmat *kbase = new bigintmat(n, n, o->basecoeffs());
 
-  
   // Speichere Basiselemente von Kern der Matrix m (Spurmatrix oder Abbildungsmatrix, je nach if-else-Fall) (von Z/pZ -> Z/pZ) in kbase (ersten kdim Spalten bilden Basis)
   int kdim = kernbase(m, kbase, p, c);
   // Schreibe für jedes i=1,, .., dimension p*(i-tes Basiselement) als Spalten in Matrix gen, dahinter die oben errechnete Basis vom Kern
@@ -544,25 +543,9 @@ number multring(bigintmat *nbase, nforder *o, number p) {
   coeffs R = o->basecoeffs();
   number divi;
   int n = o->getDim();
-  Print("The multring of\n");
-  o->Print();
-  Print(" at ");
-  n_Print(p, R);
-  Print("\n has basis:\n");
-  nbase->Print();
-  Print("\n*************************************\n");
-
-
 
   bigintmat *inv = new bigintmat(n, n, R);
   divi = nbase->pseudoinv(inv);
-  Print("Pseudo inv of ");
-  nbase->Print();
-  Print(" is ");
-  inv->Print();
-  Print(" over ");
-  n_Print(divi, R);
-  Print("\n****************************************\n");
 
   // Zusammenbau der "langen" Matrix
   bigintmat *lon = new bigintmat(n, 0, R);
@@ -656,6 +639,9 @@ nforder *pmaximal(nforder *o, number p) {
     if (no==otemp)
       break;
     nforder_delete (otemp);
+    otemp = no->simplify();
+    nforder_delete (no);
+    no = otemp;
   } while (1);
   return no;
 }

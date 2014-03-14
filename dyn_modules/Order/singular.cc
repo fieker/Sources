@@ -1,6 +1,7 @@
 #include "kernel/mod2.h" // general settings/macros
 #include"kernel/febase.h"  // for Print, WerrorS
 #include"Singular/ipid.h" // for SModulFunctions, leftv
+#include"Singular/number2.h" // for SModulFunctions, leftv
 #include"libpolys/coeffs/numbers.h" // nRegister, coeffs.h
 #include "libpolys/coeffs/coeffs.h"
 #include"Singular/blackbox.h" // blackbox type
@@ -12,12 +13,12 @@ static n_coeffType nforder_type =n_CF;
 
 static void WriteRing(const coeffs r, BOOLEAN details)
 {
-  printf("%s%d:%s: %s\n", __FILE__, __LINE__, __func__, "RING");
+  ((nforder *)r->data)->Write();
 }
 
 static char* CoeffString(const coeffs r)
 {
-  return "Ring";
+  return ((nforder *)r->data)->String();
 }
 static void EltWrite(number &a, const coeffs r)
 {
@@ -28,14 +29,12 @@ static void EltWrite(number &a, const coeffs r)
   } else {
     Print("(Null)\n");
   }
-
-  printf("%s%d:%s: %s\n", __FILE__, __LINE__, __func__, "RING-ELT");
 }
 
 static number EltCreateMat(nforder *a, bigintmat *b)
 {
   number xx = (number) new bigintmat((bigintmat*)b);
-  Print("Created new element %lx from %lx\n", xx, b);
+//  Print("Created new element %lx from %lx\n", xx, b);
   return (number) xx;
 }
 
@@ -208,7 +207,7 @@ static nMapFunc EltSetMap(const coeffs src, const coeffs dst)
 
 static void EltDelete(number * a, const coeffs r)
 {
-  Print("Deleting %lx\n%s\n", *a, (((bigintmat*)(*a))->String()));
+//  Print("Deleting %lx\n%s\n", *a, (((bigintmat*)(*a))->String()));
   delete (bigintmat*)(*a);
   *a = NULL;
 }
@@ -326,7 +325,7 @@ static BOOLEAN nforder_bb_setup()
   //b->blackbox_Op2=blackbox_default_Op2;
   //b->blackbox_Op3=blackbox_default_Op3;
   //b->blackbox_OpM=blackbox_default_OpM;
-  nforder_type_id = setBlackboxStuff(b,"NFOrder");
+  nforder_type_id = setBlackboxStuff(b,"NFOrderIdeal");
   Print("setup: created a blackbox type [%d] '%s'",nforder_type_id, getBlackboxName(nforder_type_id));
   PrintLn();
   return FALSE; // ok, TRUE = error!
@@ -336,51 +335,73 @@ static BOOLEAN nforder_bb_setup()
 
 static BOOLEAN build_ring(leftv result, leftv arg)
 {
+  nforder *o;
+  if (arg->Typ() == LIST_CMD) {
+    lists L = (lists)arg->Data();
+    int n = lSize(L)+1;
+    bigintmat **multtable = (bigintmat**)omAlloc(n*sizeof(bigintmat*));
+    for(int i=0; i<n; i++) {
+      multtable[i] = (bigintmat*)(L->m[i].Data());
+    }
+    o = new nforder(n, multtable, nInitChar(n_Z, 0));
+    omFree(multtable);
+  } else {
+    assume(arg->Typ() == INT_CMD);
+    int dimension = (int)(long)arg->Data();
 
-  int dimension = (int)(long)arg->Data();
-
-  bigintmat **multtable = (bigintmat**)omAlloc(dimension*sizeof(bigintmat*));
-  arg = arg->next;
-  for (int i=0; i<dimension; i++) {
-    multtable[i] = new bigintmat((bigintmat*)arg->Data());
+    bigintmat **multtable = (bigintmat**)omAlloc(dimension*sizeof(bigintmat*));
     arg = arg->next;
+    for (int i=0; i<dimension; i++) {
+      multtable[i] = new bigintmat((bigintmat*)arg->Data());
+      arg = arg->next;
+    }
+    o = new nforder(dimension, multtable, nInitChar(n_Z, 0));
+    for (int i=0; i<dimension; i++) {
+      delete multtable[i];
+    }
+    omFree(multtable);
   }
-  nforder *o = new nforder(dimension, multtable, nInitChar(n_Z, 0));
-  omFree(multtable);
-  result->rtyp=nforder_type_id; // set the result type
+  result->rtyp=CRING_CMD; // set the result type
   result->data=(char*)nInitChar(nforder_type, o);// set the result data
   Print("result is %lx\n", result->data);
-  currRing->cf = (coeffs)result->data;
 
   return FALSE;
 }
 
 static BOOLEAN elt_from_mat(leftv result, leftv arg)
 {
+  number2 r = (number2)omAlloc(sizeof(struct snumber2));
   coeffs C = (coeffs)arg->Data();
   nforder *O = (nforder*) (C->data);
   arg = arg->next;
   bigintmat *b = (bigintmat*) arg->Data();
-  result->rtyp = NUMBER_CMD;
-  result->data = (char*)EltCreateMat(O, b);
+  result->rtyp = NUMBER2_CMD;
+  r->n = (number)EltCreateMat(O, b);
+  r->cf = nInitChar(nforder_type, O);
+  result->data = r;
   return FALSE;
 }
 
-static BOOLEAN _calcdisc(leftv result, leftv arg)
+static BOOLEAN discriminant(leftv result, leftv arg)
 {
-  assume (arg->Typ()==nforder_type_id);
+  assume (arg->Typ()==CRING_CMD);
   coeffs c = (coeffs)arg->Data();
   assume (c->type = nforder_type);
   nforder * o = (nforder*)c->data;
   o->calcdisc();
-  result->rtyp=NONE;
+
+  number2 tt = (number2)omAlloc(sizeof(struct snumber2));
+  tt->n = o->getDisc();
+  tt->cf = o->basecoeffs();
+  result->rtyp = NUMBER2_CMD;
+  result->data = tt;
 
   return FALSE;
 }
 
 static BOOLEAN pMaximalOrder(leftv result, leftv arg)
 {
-  assume (arg->Typ()==nforder_type_id);
+  assume (arg->Typ()==CRING_CMD);
   coeffs c = (coeffs)arg->Data();
   assume (c->type = nforder_type);
   nforder * o = (nforder*)c->data;
@@ -390,17 +411,15 @@ static BOOLEAN pMaximalOrder(leftv result, leftv arg)
 
   nforder *op = pmaximal(o, P);
 
-  result->rtyp=nforder_type_id; // set the result type
+  result->rtyp=CRING_CMD; // set the result type
   result->data=(char*)nInitChar(nforder_type, op);// set the result data
-  Print("result is %lx\n", result->data);
-  currRing->cf = (coeffs)result->data;
 
   return FALSE;
 }
 
 static BOOLEAN oneStep(leftv result, leftv arg)
 {
-  assume (arg->Typ()==nforder_type_id);
+  assume (arg->Typ()==CRING_CMD);
   coeffs c = (coeffs)arg->Data();
   assume (c->type = nforder_type);
   nforder * o = (nforder*)c->data;
@@ -410,33 +429,91 @@ static BOOLEAN oneStep(leftv result, leftv arg)
 
   nforder *op = onestep(o, P, o->basecoeffs());
 
-  result->rtyp=nforder_type_id; // set the result type
+  result->rtyp=CRING_CMD; // set the result type
   result->data=(char*)nInitChar(nforder_type, op);// set the result data
-  Print("result is %lx\n", result->data);
-  currRing->cf = (coeffs)result->data;
 
   return FALSE;
 }
 
 static BOOLEAN nforder_simplify(leftv result, leftv arg)
 {
-  assume (arg->Typ()==nforder_type_id);
+  assume (arg->Typ()==CRING_CMD);
   coeffs c = (coeffs)arg->Data();
   assume (c->type = nforder_type);
   nforder * o = (nforder*)c->data;
 
   nforder *op = o->simplify();
 
-  result->rtyp=nforder_type_id; // set the result type
+  result->rtyp=CRING_CMD; // set the result type
   result->data=(char*)nInitChar(nforder_type, op);// set the result data
-  Print("result is %lx\n", result->data);
-  currRing->cf = (coeffs)result->data;
 
   return FALSE;
 }
 
+static BOOLEAN eltTrace(leftv result, leftv arg)
+{
+  assume (arg->Typ()==NUMBER2_CMD);
+  number2 a = (number2) arg->Data();
+  coeffs  c = a->cf;
+  bigintmat * aa = (bigintmat*)a->n;
+  assume (c->type = nforder_type);
+  nforder * o = (nforder*)c->data;
+  number t = o->elTrace(aa);
+  number2 tt = (number2)omAlloc(sizeof(struct snumber2));
+  tt->n = t;
+  tt->cf = o->basecoeffs();
+  result->rtyp = NUMBER2_CMD;
+  result->data = tt;
+  return FALSE;
+}
 
+static BOOLEAN eltNorm(leftv result, leftv arg)
+{
+  assume (arg->Typ()==NUMBER2_CMD);
+  number2 a = (number2) arg->Data();
+  coeffs  c = a->cf;
+  bigintmat * aa = (bigintmat*)a->n;
+  assume (c->type = nforder_type);
+  nforder * o = (nforder*)c->data;
+  number t = o->elNorm(aa);
+  number2 tt = (number2)omAlloc(sizeof(struct snumber2));
+  tt->n = t;
+  tt->cf = o->basecoeffs();
+  result->rtyp = NUMBER2_CMD;
+  result->data = tt;
+  return FALSE;
+}
 
+static BOOLEAN eltRepMat(leftv result, leftv arg)
+{
+  assume (arg->Typ()==NUMBER2_CMD);
+  number2 a = (number2) arg->Data();
+  coeffs  c = a->cf;
+  bigintmat * aa = (bigintmat*)a->n;
+  assume (c->type = nforder_type);
+  nforder * o = (nforder*)c->data;
+  bigintmat* t = o->elRepMat(aa);
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = t;
+  return FALSE;
+}
+
+static BOOLEAN smithtest(leftv result, leftv arg)
+{
+  assume (arg->Typ()==BIGINTMAT_CMD);
+  bigintmat *a = (bigintmat *) arg->Data();
+  arg = arg->next;
+
+  long p = (int)(long)arg->Data();
+  number P = n_Init(p, a->basecoeffs());
+
+  bigintmat * A, *B;
+  diagonalForm(a, &A, &B);
+ 
+
+  result->rtyp = NONE;
+  return FALSE;
+}
 
 
 extern "C" int mod_init(SModulFunctions* psModulFunctions)
@@ -463,9 +540,9 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
 
   psModulFunctions->iiAddCproc(
           (currPack->libname? currPack->libname: ""),
-          "calcdisc",
+          "Discriminant",
           FALSE, 
-          _calcdisc); 
+          discriminant); 
 
   psModulFunctions->iiAddCproc(
           (currPack->libname? currPack->libname: ""),
@@ -483,19 +560,26 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
           (currPack->libname? currPack->libname: ""),
           "EltNorm",
           FALSE, 
-          elt_from_mat); 
+          eltNorm); 
 
   psModulFunctions->iiAddCproc(
           (currPack->libname? currPack->libname: ""),
           "EltTrace",
           FALSE, 
-          elt_from_mat); 
+          eltTrace); 
 
   psModulFunctions->iiAddCproc(
           (currPack->libname? currPack->libname: ""),
           "EltRepMat",
           FALSE, 
-          elt_from_mat); 
+          eltRepMat); 
+
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "SmithTest",
+          FALSE, 
+          smithtest); 
+
 
 
   module_help_main(

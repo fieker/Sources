@@ -472,6 +472,19 @@ number nrnGetUnit(number k, const coeffs r)
   return (number)unit;
 }
 
+number nrnAnn(number k, const coeffs r)
+{
+  int_number tmp = (int_number) omAllocBin(gmp_nrz_bin);
+  mpz_init(tmp);
+  mpz_gcd(tmp, (int_number) k, r->modNumber);
+  if (mpz_cmp_si(tmp, 1)==0) {
+    mpz_set_si(tmp, 0);
+    return (number) tmp;
+  }
+  mpz_divexact(tmp, r->modNumber, tmp);
+  return (number) tmp;
+}
+
 BOOLEAN nrnDivBy(number a, number b, const coeffs r)
 {
   if (a == NULL)

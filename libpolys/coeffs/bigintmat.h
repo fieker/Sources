@@ -269,5 +269,6 @@ bool nCoeffs_are_equal(coeffs r, coeffs s);
 static inline void number2mpz(number n, coeffs c, mpz_t m){ n_MPZ(m, n, c); }
 static inline number mpz2number(mpz_t m, coeffs c){ return n_InitMPZ(m, c); }
 // enden wieder
+void diagonalForm(bigintmat *a, bigintmat **b, bigintmat **c);
 
 #endif // #ifndef BIGINTMAT_H

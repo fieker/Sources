@@ -1434,7 +1434,6 @@ void bigintmat::rowmod(int i, number p, coeffs c)
 }
 #endif
 
-
 void bigintmat::hnf()
 {
   // Keine 100%ige HNF, da Einträge rechts von Diagonalen auch kleiner 0 sein können
@@ -1489,7 +1488,6 @@ void bigintmat::hnf()
 
               addcol(l, l+1, q, basecoeffs());
               n_Delete(&q, basecoeffs());
-              
             }
             else if (n_Equal(tmp1, minusone, basecoeffs())) {
               // Falls x=-1, so ist x=-ggt(x, y). Dann gehe wie oben vor, multipliziere aber zuerst die neue rechte Spalte (die mit x) mit -1
@@ -1503,20 +1501,20 @@ void bigintmat::hnf()
               // CF: use the 2x2 matrix (co1, co2)(co3, co4) to
               // get the gcd in position and the 0 in the other:
 #ifdef CF_DEB             
-              Print("applying trafo\n");
+              ::Print("applying trafo\n");
               StringSetS("");
               n_Write(co1, basecoeffs()); StringAppendS("\t");
               n_Write(co2, basecoeffs()); StringAppendS("\t");
               n_Write(co3, basecoeffs()); StringAppendS("\t");
               n_Write(co4, basecoeffs()); StringAppendS("\t");
-              Print("%s\nfor l=%d\n", StringEndS(), l);
+              ::Print("%s\nfor l=%d\n", StringEndS(), l);
               {char * s = String();
-              Print("to %s\n", s);omFree(s)}
+              ::Print("to %s\n", s);omFree(s);};
 #endif
               coltransform(l, l+1, co3, co4, co1, co2);
 #ifdef CF_DEB              
               {char * s = String();
-              Print("gives %s\n", s);}
+              ::Print("gives %s\n", s);}
 #endif
             }
             n_Delete(&co1, basecoeffs());
@@ -1531,22 +1529,19 @@ void bigintmat::hnf()
         }
       }
       
-      tmp1 = get(i, j);
       // normalize by units:
-      if (!n_IsZero(tmp1, basecoeffs())) {
-        number u = n_GetUnit(tmp1, basecoeffs());
+      if (!n_IsZero(view(i, j), basecoeffs())) {
+        number u = n_GetUnit(view(i, j), basecoeffs());
         if (!n_IsOne(u, basecoeffs())) {
-          colskalmult(j, u, basecoeffs());
+          colskaldiv(j, u);
         }
         n_Delete(&u, basecoeffs());
       }
       // Zum Schluss mache alle Einträge rechts vom Diagonalelement betragsmäßig kleiner als dieses
       // Durch Änderung könnte man auch erreichen, dass diese auch nicht negativ sind
       for (int l=j+1; l<=col; l++) {
-        tmp1 = get(i, l);
-        tmp2 = get(i, j);
         n_Delete(&q, basecoeffs());
-        q = n_QuotRem(tmp1, tmp2, NULL, basecoeffs());
+        q = n_QuotRem(view(i, l), view(i, j), NULL, basecoeffs());
         q = n_Neg(q, basecoeffs());
         addcol(l, j, q, basecoeffs());
       }
@@ -1901,27 +1896,149 @@ number solvexA(bigintmat *A, bigintmat *b, bigintmat *x) {
   return 0;
 }
 
+void diagonalForm(bigintmat *A, bigintmat ** S, bigintmat ** T)
+{
+  bigintmat * t, *s, *a=A;
+  coeffs R = a->basecoeffs();
+  if (T) {
+    *T = new bigintmat(a->cols(), a->cols(), R),
+    (*T)->one();
+    t = new bigintmat(*T);
+  } else {
+    t = *T;
+  }
+  
+  if (S) {
+    *S = new bigintmat(a->rows(), a->rows(), R);
+    (*S)->one();
+    s = new bigintmat(*S);
+  } else {
+    s = *S;
+  }
+
+  int flip=0;
+  do {
+    bigintmat * x, *X;
+    if (flip) {
+      x = s;
+      X = *S;
+    } else {
+      x = t;
+      X = *T;
+    }
+
+    if (x) {
+      x->one();
+      bigintmat * r = new bigintmat(a->rows()+a->cols(), a->cols(), R);
+      bigintmat * rw = new bigintmat(1, a->cols(), R);
+      for(int i=0; i<a->cols(); i++) {
+        x->getrow(i+1, rw);
+        r->setrow(i+1, rw);
+      }
+      for (int i=0; i<a->rows(); i++) {
+        a->getrow(i+1, rw);
+        r->setrow(i+a->cols()+1, rw);
+      }
+      r->hnf();
+      for(int i=0; i<a->cols(); i++) {
+        r->getrow(i+1, rw);
+        x->setrow(i+1, rw);
+      }
+      for(int i=0; i<a->rows(); i++) {
+        r->getrow(i+a->cols()+1, rw);
+        a->setrow(i+1, rw);
+      }
+      delete rw;
+      delete r;
+
+#if 0
+      Print("X: %ld\n", X);
+      X->Print();
+      Print("\nx: %ld\n", x);
+      x->Print();
+#endif
+      bimMult(X, x, X);
+#if 0
+      Print("\n2:X: %ld %ld %ld\n", X, *S, *T);
+      X->Print();
+      Print("\n2:x: %ld\n", x);
+      x->Print();
+      Print("\n");
+#endif
+    } else {
+      a->hnf();
+    }
+
+    int diag = 1;
+    for(int i=a->rows(); diag && i>0; i--) {
+      for(int j=a->cols(); j>0; j--) {
+        if ((a->rows()-i)!=(a->cols()-j) && !n_IsZero(a->view(i, j), R)) {
+          diag = 0;
+          break;
+        }
+      }
+    }
+#if 0
+    Print("Diag ? %d\n", diag);
+    a->Print();
+    Print("\n");
+#endif
+    if (diag) break;
+   
+    a = a->transpose(); // leaks - I need to write inpTranspose
+    flip = 1-flip;
+  } while (1);
+  if (flip)
+    a = a->transpose();
+
+  if (S) *S = (*S)->transpose();
+  if (s) delete s;
+  if (t) delete t;
+  A->copy(a);
+}
+
 //CF TODO make work for Z/nZ, don't use gauss
 int kernbase (bigintmat *a, bigintmat *c, number p, coeffs q) {
-  number temp;
-  number minusone = n_Init(-1, a->basecoeffs());
-  bigintmat *tmp = new bigintmat(a->rows(), 1, a->basecoeffs());
-  bigintmat *m = a->modgauss(p, q);
-  int dim = 0;
-  for (int i=1; (i<=m->rows()) && (i <= m->cols()); i++) {
-    temp = m->get(i, i);
-    if (n_IsZero(temp, m->basecoeffs())) {
-      dim++;
-      m->set(i, i, minusone);
-      m->getcol(i, tmp);
-      c->setcol(dim, tmp);
-    }
-    n_Delete(&temp, m->basecoeffs());
+#if 0
+  Print("Kernel of ");
+  a->Print();
+  Print(" modulo ");
+  n_Print(p, q);
+  Print("\n");
+#endif
+
+  coeffs coe = numbercoeffs(p, q);
+  bigintmat *m = bimChangeCoeff(a, coe), *U, *V;
+  diagonalForm(m, &U, &V);
+#if 0
+  Print("\ndiag form: ");
+  m->Print();
+  Print("\nU:\n");
+  U->Print();
+  Print("\nV:\n");
+  V->Print();
+  Print("\n");
+#endif
+
+  int rg = 0;
+#undef MIN
+#define MIN(a,b) (a < b ? a : b)
+  for(rg=0; rg<MIN(m->rows(), m->cols()) && !n_IsZero(m->view(m->rows()-rg,m->cols()-rg), coe); rg++);
+
+#undef MAX
+#define MAX(a,b) (a > b ? a : b)
+  bigintmat * k = new bigintmat(m->cols(), m->rows(), coe);
+  for(int i=0; i<rg; i++) {
+    number A = n_Ann(m->view(m->rows()-i, m->cols()-i), coe);
+    k->set(m->cols()-i, i+1, A);
+    n_Delete(&A, coe);
   }
-  n_Delete(&minusone, m->basecoeffs());
-  delete tmp;  
-  delete m;
-  return dim;
+  for(int i=rg; i<m->cols(); i++) {
+    k->set(m->cols()-i, i+1-rg, n_Init(1, coe));
+  }
+  bimMult(V, k, k);
+  c->copy(bimChangeCoeff(k, q));
+  return c->cols();
 }
 
 

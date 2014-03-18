@@ -386,7 +386,7 @@ static BOOLEAN discriminant(leftv result, leftv arg)
 {
   assume (arg->Typ()==CRING_CMD);
   coeffs c = (coeffs)arg->Data();
-  assume (c->type = nforder_type);
+  assume (c->type == nforder_type);
   nforder * o = (nforder*)c->data;
   o->calcdisc();
 
@@ -403,7 +403,8 @@ static BOOLEAN pMaximalOrder(leftv result, leftv arg)
 {
   assume (arg->Typ()==CRING_CMD);
   coeffs c = (coeffs)arg->Data();
-  assume (c->type = nforder_type);
+  assume (c);
+  assume (c->type == nforder_type);
   nforder * o = (nforder*)c->data;
   arg = arg->next;
   long p = (int)(long)arg->Data();
@@ -413,6 +414,7 @@ static BOOLEAN pMaximalOrder(leftv result, leftv arg)
 
   result->rtyp=CRING_CMD; // set the result type
   result->data=(char*)nInitChar(nforder_type, op);// set the result data
+  assume(result->data);
 
   return FALSE;
 }
@@ -421,7 +423,7 @@ static BOOLEAN oneStep(leftv result, leftv arg)
 {
   assume (arg->Typ()==CRING_CMD);
   coeffs c = (coeffs)arg->Data();
-  assume (c->type = nforder_type);
+  assume (c->type == nforder_type);
   nforder * o = (nforder*)c->data;
   arg = arg->next;
   long p = (int)(long)arg->Data();
@@ -456,7 +458,7 @@ static BOOLEAN eltTrace(leftv result, leftv arg)
   number2 a = (number2) arg->Data();
   coeffs  c = a->cf;
   bigintmat * aa = (bigintmat*)a->n;
-  assume (c->type = nforder_type);
+  assume (c->type == nforder_type);
   nforder * o = (nforder*)c->data;
   number t = o->elTrace(aa);
   number2 tt = (number2)omAlloc(sizeof(struct snumber2));
@@ -473,7 +475,7 @@ static BOOLEAN eltNorm(leftv result, leftv arg)
   number2 a = (number2) arg->Data();
   coeffs  c = a->cf;
   bigintmat * aa = (bigintmat*)a->n;
-  assume (c->type = nforder_type);
+  assume (c->type == nforder_type);
   nforder * o = (nforder*)c->data;
   number t = o->elNorm(aa);
   number2 tt = (number2)omAlloc(sizeof(struct snumber2));
@@ -490,7 +492,7 @@ static BOOLEAN eltRepMat(leftv result, leftv arg)
   number2 a = (number2) arg->Data();
   coeffs  c = a->cf;
   bigintmat * aa = (bigintmat*)a->n;
-  assume (c->type = nforder_type);
+  assume (c->type == nforder_type);
   nforder * o = (nforder*)c->data;
   bigintmat* t = o->elRepMat(aa);
   result->rtyp = BIGINTMAT_CMD;

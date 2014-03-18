@@ -160,6 +160,7 @@ void nforder::calcdisc() {
   if (baseorder == NULL) {
     bigintmat *m = traceMatrix();
     discriminant = m->det();
+    assume(discriminant);
     delete m;
   }
   else
@@ -173,7 +174,9 @@ void nforder::calcdisc() {
       n_Delete(&prod, basecoeffs());
       prod = tmp;
     }
+    baseorder->calcdisc();
     number disc = baseorder->viewDisc();
+    assume(disc);
     number detquad = n_Mult(prod, prod, basis->basecoeffs());
     discriminant = n_Mult(disc, detquad, basecoeffs());
 

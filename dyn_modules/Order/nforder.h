@@ -117,7 +117,7 @@ public:
 ////// 1 Komfortfunktionen /////////
 ////////////////////////////////////
 /* Setzt Vektor m auf (0,...,0,1,0,...,0) (i-ten Basisvektor)  */
-void makebase(bigintmat *m, int i);
+void basis_elt(bigintmat *m, int i);
 
 ////////////////////////////////////
 //////////// 2 Round 2 /////////////

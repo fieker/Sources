@@ -6,253 +6,12 @@
 #include "libpolys/coeffs/coeffs.h"
 #include"Singular/blackbox.h" // blackbox type
 #include "nforder.h"
+#include "nforder_elt.h"
+#include "nforder_ideal.h"
 #include "libpolys/coeffs/bigintmat.h"
 
 static int nforder_type_id=0;
-static n_coeffType nforder_type =n_CF;
-
-static void WriteRing(const coeffs r, BOOLEAN details)
-{
-  ((nforder *)r->data)->Write();
-}
-
-static char* CoeffString(const coeffs r)
-{
-  return ((nforder *)r->data)->String();
-}
-static void EltWrite(number &a, const coeffs r)
-{
-  bigintmat * b = (bigintmat*)a;
-  if (a) {
-    char * m = b->String();
-    ::Print("%s\n", m);
-  } else {
-    Print("(Null)\n");
-  }
-}
-
-static number EltCreateMat(nforder *a, bigintmat *b)
-{
-  number xx = (number) new bigintmat((bigintmat*)b);
-//  Print("Created new element %lx from %lx\n", xx, b);
-  return (number) xx;
-}
-
-
-static BOOLEAN order_cmp(coeffs n, n_coeffType t, void*parameter)
-{
-  return (t==nforder_type) && (n->data == parameter);
-}
-
-static void KillChar(coeffs r) {
-  Print("KillChar %lx\n", r);
-}
-#ifdef LDEBUG
-  BOOLEAN EltDBTest(number, const char *, const int, const coeffs)
-{
-    return TRUE;
-}
-#endif
-
-static void SetChar(const coeffs r)
-{
-  Print("%s called\n", __func__);
-}
-                                // or NULL
-   // general stuff
-static number EltMult(number a, number b, const coeffs r)
-{
-  nforder *O = (nforder*) (r->data);
-  bigintmat *c = new bigintmat((bigintmat*)a);
-  O->elMult(c, (bigintmat*) b);
-  return (number) c;
-}
-static number EltSub(number a, number b, const coeffs r)
-{
-  nforder *O = (nforder*) (r->data);
-  bigintmat *c = new bigintmat((bigintmat*)a);
-  O->elSub(c, (bigintmat*) b);
-  return (number) c;
-}
-static number EltAdd(number a, number b, const coeffs r)
-{
-  nforder *O = (nforder*) (r->data);
-  bigintmat *c = new bigintmat((bigintmat*)a);
-  O->elAdd(c, (bigintmat*) b);
-  return (number) c;
-}
-static number EltDiv(number a, number b, const coeffs r)
-{
-  Werror("%s called\n", __func__);
-  return NULL;
-}
-static number EltIntDiv(number a, number b, const coeffs r)
-{
-  Werror("IntDiv called on order elts");
-  return NULL;
-}
-static number EltIntMod(number a, number b, const coeffs r)
-{
-  Werror("IntMod called on order elts");
-  return NULL;
-}
-static number EltExactDiv(number a, number b, const coeffs r)
-{
-  Werror("%s called\n", __func__);
-  return NULL;
-}
-   /// init with an integer
-static number  EltInit(long i,const coeffs r)
-
-{
-  Print("%s called\n", __func__);
-  return NULL;
-}
-
-   /// init with a GMP integer
-static number  EltInitMPZ(mpz_t i, const coeffs r)
-
-{
-  Werror("%s called\n", __func__);
-  return NULL;
-}
-   /// how complicated, (0) => 0, or positive
-static int EltSize(number n, const coeffs r)
-
-{
-  Werror("%s called\n", __func__);
-  return NULL;
-}
-   /// convertion to int, 0 if impossible
-static int EltInt(number &n, const coeffs r)
-
-{
-  Werror("%s called\n", __func__);
-  return NULL;
-}
-   /// Converts a non-negative number n into a GMP number, 0 if impossible
-static void EltMPZ(mpz_t result, number &n, const coeffs r)
-
-{
-  Werror("%s called\n", __func__);
-}
-   /// changes argument  inline: a:= -a
-   /// return -a! (no copy is returned)
-   /// the result should be assigned to the original argument: e.g. a = n_Neg(a,r)
-static number  EltNeg(number a, const coeffs r)
-   /// return 1/a
-{
-  Werror("%s called\n", __func__);
-  return NULL;
-}
-static number  EltInvers(number a, const coeffs r)
-   /// return a copy of a
-{
-  Werror("%s called\n", __func__);
-  return NULL;
-}
-static number  EltCopy(number a, const coeffs r)
-
-{
-  return EltCreateMat((nforder*)r->data, (bigintmat*)a);
-}
-
-static const char * EltRead(const char * s, number * a, const coeffs r)
-{
-  Print("%s called with ->%s-<\n", __func__, s);
-  return s;
-}
-
-static BOOLEAN EltEqual(number a,number b, const coeffs r)
-{
-  Print("%s called\n", __func__);
-  return 0;
-}
-static BOOLEAN EltGreater(number a,number b, const coeffs r)
-{
-  Print("%s called\n", __func__);
-  return 0;
-}
-static BOOLEAN EltIsOne(number a, const coeffs r)
-{
-  Print("%s called\n", __func__);
-  return 0;
-}
-static BOOLEAN EltIsMOne(number a, const coeffs r)
-{
-  Print("%s called\n", __func__);
-  return 0;
-}
-static BOOLEAN EltGreaterZero(number a, const coeffs r)
-{
-  Print("%s called\n", __func__);
-  return 0;
-}
-static BOOLEAN EltIsZero(number a, const coeffs r)
-{
-  Print("%s called\n", __func__);
-  return 0;
-}
-static void  EltPowerSmall(number a, int i, number * result, const coeffs r)
-{
-  Print("%s called\n", __func__);
-  result = NULL;
-}
-
-static nMapFunc EltSetMap(const coeffs src, const coeffs dst)
-{
-  Print("%s called\n", __func__);
-  return NULL;
-}
-
-static void EltDelete(number * a, const coeffs r)
-{
-//  Print("Deleting %lx\n%s\n", *a, (((bigintmat*)(*a))->String()));
-  delete (bigintmat*)(*a);
-  *a = NULL;
-}
-
-BOOLEAN n_nfOrderInit(coeffs r,  void * parameter)
-{
-  puts("nfOrderInit called");
-  assume( getCoeffType(r) == nforder_type );
-  r->nCoeffIsEqual=order_cmp;
-  r->cfKillChar = KillChar;
-  r->cfSetChar = SetChar;
-  r->cfCoeffString=CoeffString;
-  r->cfCoeffWrite=WriteRing;
-  r->cfWriteShort=EltWrite;
-  r->cfInit = EltInit;
-  r->cfMult = EltMult;
-  r->cfSub = EltSub;
-  r->cfAdd = EltAdd;
-  r->cfDiv = EltDiv;
-  r->cfExactDiv = EltExactDiv;
-  r->cfInitMPZ = EltInitMPZ;
-  r->cfSize = EltSize;
-  r->cfInt = EltInt;
-  r->cfMPZ = EltMPZ;
-  r->cfNeg = EltNeg;
-  r->cfInvers = EltInvers;
-  r->cfCopy = EltCopy;
-  r->data = parameter;
-  
-  r->cfWriteLong = EltWrite;
-  r->cfRead =EltRead;
-  r->cfGreater = EltGreater;
-  r->cfEqual = EltEqual;
-  r->cfIsZero = EltIsZero;
-  r->cfIsOne = EltIsOne;
-  r->cfIsMOne = EltIsMOne;
-  r->cfGreaterZero = EltGreaterZero;
-  r->cfPower = EltPowerSmall;
-  r->cfDelete = EltDelete;
-  r->cfSetMap = EltSetMap;
-#ifdef LDEBUG
-  r->cfDBTest = EltDBTest;
-#endif
-  return FALSE;
-}
+n_coeffType nforder_type =n_unknown;
 
 // coeffs stuff: -----------------------------------------------------------
 static coeffs nforder_AE=NULL;
@@ -263,25 +22,23 @@ static void nforder_Register()
   nforder_AE=nInitChar(nforder_type,NULL);
 }
 // black box stuff: ---------------------------------------------------------
-static void * nforder_Init(blackbox */*b*/)
+static void * nforder_ideal_Init(blackbox */*b*/)
 {
   nforder_AE->ref++;
   return nforder_AE;
 }
-static char * nforder_String(blackbox *b, void *d)
+static char * nforder_ideal_String(blackbox *b, void *d)
 {
   StringSetS("");
-  coeffs c=(coeffs)d;
-  if (c==NULL) StringAppendS("oo");
-  else StringAppend("Coeff(%d)",c->type);
-  Print("d: %lx\n", d);
-  if (d && c->data) ((nforder *)(c->data))->Print();
+  if (d==NULL) StringAppendS("oo");
+  else StringAppend("Ideal(%lx)",d);
+  if (d) ((nforder_ideal *)d)->Write();
   return StringEndS();
 }
-static void * nforder_Copy(blackbox*b, void *d)
-{  coeffs c=(coeffs)d; if (c!=NULL) c->ref++;return d; }
+static void * nforder_ideal_Copy(blackbox*b, void *d)
+{  coeffs c=(coeffs)d; return new nforder_ideal((nforder_ideal*)d, 1);}
 
-static BOOLEAN nforder_Assign(leftv l, leftv r)
+static BOOLEAN nforder_ideal_Assign(leftv l, leftv r)
 {
   if (l->Typ()==r->Typ())
   {
@@ -301,28 +58,45 @@ static BOOLEAN nforder_Assign(leftv l, leftv r)
   }
   return TRUE;
 }
-static void nforder_destroy(blackbox *b, void *d)
+static void nforder_ideal_destroy(blackbox *b, void *d)
 {
   if (d!=NULL)
   {
-    coeffs c=(coeffs)d;
-    c->ref--;
+    delete (nforder_ideal*)d;
   }
 }
-static BOOLEAN nforder_bb_setup()
+
+static BOOLEAN nforder_ideal_Op2(int op,leftv l, leftv r1, leftv r2)
+{
+  switch (op) {
+    case '+':
+      {
+      nforder_ideal *I = (nforder_ideal*) r1->data,
+                    *J = (nforder_ideal*) r2->data,
+                    *H = nf_idAdd(I, J);
+      l->rtyp = nforder_type_id;
+      l->data = (void*)H;
+      return FALSE;
+      }
+    default:
+      return WrongOp("not implemented yet", op, r1);
+  }
+  return TRUE;
+}
+static BOOLEAN nforder_ideal_bb_setup()
 {
   blackbox *b=(blackbox*)omAlloc0(sizeof(blackbox));
   // all undefined entries will be set to default in setBlackboxStuff
-  // the default Print is quite usefule,
+  // the default Print is quite useful,
   // all other are simply error messages
-  b->blackbox_destroy=nforder_destroy;
-  b->blackbox_String=nforder_String;
+  b->blackbox_destroy=nforder_ideal_destroy;
+  b->blackbox_String=nforder_ideal_String;
   //b->blackbox_Print=blackbox_default_Print;
-  b->blackbox_Init=nforder_Init;
-  b->blackbox_Copy=nforder_Copy;
-  b->blackbox_Assign=nforder_Assign;
+  b->blackbox_Init=nforder_ideal_Init;
+  b->blackbox_Copy=nforder_ideal_Copy;
+  b->blackbox_Assign=nforder_ideal_Assign;
   //b->blackbox_Op1=blackbox_default_Op1;
-  //b->blackbox_Op2=blackbox_default_Op2;
+  b->blackbox_Op2=nforder_ideal_Op2;
   //b->blackbox_Op3=blackbox_default_Op3;
   //b->blackbox_OpM=blackbox_default_OpM;
   nforder_type_id = setBlackboxStuff(b,"NFOrderIdeal");
@@ -363,10 +137,33 @@ static BOOLEAN build_ring(leftv result, leftv arg)
   }
   result->rtyp=CRING_CMD; // set the result type
   result->data=(char*)nInitChar(nforder_type, o);// set the result data
-  Print("result is %lx\n", result->data);
 
   return FALSE;
 }
+
+static BOOLEAN ideal_from_mat(leftv result, leftv arg)
+{
+  if (arg->Typ() != CRING_CMD) {
+    WerrorS("1:usage: IdealFromMat(order, basis matrix)");
+    return TRUE;
+  }
+  coeffs C = (coeffs)arg->Data();
+  if (getCoeffType(C) != nforder_type) {
+    WerrorS("2:usage: IdealFromMat(order, basis matrix)");
+    return TRUE;
+  }
+  nforder *O = (nforder*) (C->data);
+  arg = arg->next;
+  if (arg->Typ()!=BIGINTMAT_CMD) {
+    WerrorS("3:usage: IdealFromMat(order, basis matrix)");
+    return TRUE;
+  }
+  bigintmat *b = (bigintmat*) arg->Data();
+  result->rtyp = nforder_type_id;
+  result->data = new nforder_ideal(b, C);
+  return FALSE;
+}
+
 
 static BOOLEAN elt_from_mat(leftv result, leftv arg)
 {
@@ -521,7 +318,7 @@ static BOOLEAN smithtest(leftv result, leftv arg)
 extern "C" int mod_init(SModulFunctions* psModulFunctions)
 {
   nforder_Register();
-  nforder_bb_setup();
+  nforder_ideal_bb_setup();
   psModulFunctions->iiAddCproc(
           (currPack->libname? currPack->libname: ""),// the library name,
           "nfOrder",// the name for the singular interpreter
@@ -582,7 +379,11 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
           FALSE, 
           smithtest); 
 
-
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "IdealFromMat",
+          FALSE, 
+          ideal_from_mat); 
 
   module_help_main(
      (currPack->libname? currPack->libname: "NFOrder"),// the library name,

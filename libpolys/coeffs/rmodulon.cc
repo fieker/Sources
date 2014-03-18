@@ -112,9 +112,10 @@ BOOLEAN nrnInitChar (coeffs r, void* p)
   r->cfGcd         = nrnGcd;
   r->cfIsUnit      = nrnIsUnit;
   r->cfGetUnit     = nrnGetUnit;
+  r->cfAnn         = nrnAnn;
   r->cfExtGcd      = nrnExtGcd;
-  r->cfXExtGcd      = nrnXExtGcd;
-  r->cfQuotRem      = nrnQuotRem;
+  r->cfXExtGcd     = nrnXExtGcd;
+  r->cfQuotRem     = nrnQuotRem;
   r->cfName        = ndName;
   r->cfCoeffWrite  = nrnCoeffWrite;
   r->nCoeffIsEqual = nrnCoeffsEqual;

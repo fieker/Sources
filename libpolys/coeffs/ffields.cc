@@ -963,6 +963,7 @@ void    nfCoeffWrite  (const coeffs r, BOOLEAN details)
 {
   // m_nfCharQ = p^k where p is the characteristic (r->CharP) and k is GFDegree
   Print("//   # ground field : %d\n",r->m_nfCharQ);
+  //Print("//   GF(%d,%d)\n",r->m_nfCharP,r->m_nfCharQ);
   Print("//   primitive element : %s\n", n_ParameterNames(r)[0]);
   if ( details )
   {

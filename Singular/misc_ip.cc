@@ -1167,9 +1167,6 @@ extern "C"
 void siInit(char *name)
 {
 // factory default settings: -----------------------------------------------
-  On(SW_USE_NTL);
-  On(SW_USE_NTL_GCD_0); // On -> seg11 in Old/algnorm, Old/factor...
-  On(SW_USE_NTL_GCD_P); // On -> cyle in Short/brnoeth_s: fixed
   On(SW_USE_EZGCD);
   On(SW_USE_CHINREM_GCD);
   //On(SW_USE_FF_MOD_GCD);
@@ -1197,7 +1194,7 @@ void siInit(char *name)
 #endif
   memset(&sLastPrinted,0,sizeof(sleftv));
   sLastPrinted.rtyp=NONE;
-
+  {
   extern int iiInitArithmetic(); iiInitArithmetic(); // iparith.cc
 
   basePack=(package)omAlloc0(sizeof(*basePack));
@@ -1208,7 +1205,6 @@ void siInit(char *name)
   IDPACKAGE(h)=basePack;
   currPackHdl=h;
   basePackHdl=h;
-
   coeffs_BIGINT = nInitChar(n_Z,NULL);
 
 #if 1
@@ -1262,4 +1258,16 @@ void siInit(char *name)
     SI_RESTORE_OPT(save1,save2);
   }
   errorreported = 0;
+// default coeffs
+  {
+  idhdl h;
+  h=enterid(omStrDup("QQ"),0/*level*/, CRING_CMD,&(basePack->idroot),FALSE /*init*/,FALSE /*search*/);
+  IDDATA(h)=(char*)nInitChar(n_Q,NULL);
+  h=enterid(omStrDup("ZZ"),0/*level*/, CRING_CMD,&(basePack->idroot),FALSE /*init*/,FALSE /*search*/);
+  IDDATA(h)=(char*)nInitChar(n_Z,NULL);
+  //h=enterid(omStrDup("RR"),0/*level*/, CRING_CMD,&(basePack->idroot),FALSE /*init*/,FALSE /*search*/);
+  //IDDATA(h)=(char*)nInitChar(n_R,NULL);
+  //h=enterid(omStrDup("CC"),0/*level*/, CRING_CMD,&(basePack->idroot),FALSE /*init*/,FALSE /*search*/);
+  //IDDATA(h)=(char*)nInitChar(n_long_C,NULL);
+  }
 }

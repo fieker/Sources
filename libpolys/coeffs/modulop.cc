@@ -839,5 +839,6 @@ void nvPower (number a, int i, number * result, const coeffs r)
 void    npCoeffWrite  (const coeffs r, BOOLEAN /*details*/)
 {
   Print("//   characteristic : %d\n",r->ch);
+  //Print("// ZZ/%d\n",r->ch);
 }
 

@@ -35,6 +35,8 @@ private:
   bigintmat *basis; // Lin.Komb. der Basiselemente von baseorder zu Basiselementen der Ordnung (Eine Zeile ^= ein Basiselement)  
   number divisor; // Hauptnenner der Linearkombination der Basiselemente  
     // Entweder multtable oder baseorder zeigt auf NULL - je nachdem, wie die Ordnung konstruiert wurde  
+  bigintmat *inv_basis; // (inv_basis/inv_divisor) = (basis/divisor)^-1
+  number inv_divisor; // 
   int flags;
   
   ////////////////////////////////////
@@ -59,6 +61,8 @@ public:
   nforder(nforder *o, int);
   
   ~nforder();
+  void Write();
+  char* String();
   void Print();
   nforder *simplify(); //collapses a tower: multipy all bases together
 
@@ -67,6 +71,7 @@ public:
   ////////////////////////////////////
   
   number getDisc();
+  inline number viewDisc(){return discriminant;};
   int getDim();
   inline coeffs basecoeffs() const { return m_coeffs; }
   number getDiv();
@@ -112,7 +117,7 @@ public:
 ////// 1 Komfortfunktionen /////////
 ////////////////////////////////////
 /* Setzt Vektor m auf (0,...,0,1,0,...,0) (i-ten Basisvektor)  */
-void makebase(bigintmat *m, int i);
+void basis_elt(bigintmat *m, int i);
 
 ////////////////////////////////////
 //////////// 2 Round 2 /////////////

@@ -587,6 +587,14 @@ number  nrzGetUnit (number n, const coeffs r)
     return INT_TO_SR(-1);
 }
 
+number nrzAnn(number n, const coeffs)
+{
+  if (SR_TO_INT(n))  // in Z: the annihilator of !=0 is 0 
+    return INT_TO_SR(0);
+  else
+    return INT_TO_SR(1);
+}
+
 BOOLEAN nrzIsUnit (number a, const coeffs)
 {
   return IS_SMALL(a) && ABS(SR_TO_INT(a))==1;
@@ -912,6 +920,7 @@ const char * nrzRead (const char *s, number *a, const coeffs)
 
 void    nrzCoeffWrite  (const coeffs, BOOLEAN /*details*/)
 {
+  //PrintS("// ZZ\n");
   PrintS("//   coeff. ring is : Integers\n");
 }
 
@@ -980,6 +989,7 @@ BOOLEAN nrzInitChar(coeffs r,  void *)
   r->cfDivComp = nrzDivComp; // only for ring stuff
   r->cfIsUnit = nrzIsUnit; // only for ring stuff
   r->cfGetUnit = nrzGetUnit; // only for ring stuff
+  r->cfAnn = nrzAnn;
   r->cfExtGcd = nrzExtGcd; // only for ring stuff
   r->cfXExtGcd = nrzXExtGcd; // only for ring stuff
   r->cfQuotRem = nrzQuotRem;

@@ -49,6 +49,7 @@
 #include <Singular/attrib.h>
 #include <Singular/subexpr.h>
 #include <Singular/blackbox.h>
+#include <Singular/number2.h>
 
 
 
@@ -124,6 +125,12 @@ void sleftv::Print(leftv store, int spaces)
           break;
         case NONE:
           return;
+        case CRING_CMD:
+          crPrint((coeffs)d);
+          break;
+        case NUMBER2_CMD:
+          n2Print((number2)d);
+          break;
         case INTVEC_CMD:
         case INTMAT_CMD:
           ((intvec *)d)->show(t,spaces);
@@ -390,6 +397,14 @@ static inline void * s_internalCopy(const int t,  void *d)
 {
   switch (t)
   {
+    case CRING_CMD:
+      {
+        coeffs cf=(coeffs)d;
+        cf->ref++;
+        return (void*)d;
+      }
+    case NUMBER2_CMD:
+      return (void*)n2Copy((number2)d);
     case INTVEC_CMD:
     case INTMAT_CMD:
       return (void *)ivCopy((intvec *)d);
@@ -459,6 +474,15 @@ void s_internalDelete(const int t,  void *d, const ring r)
   assume(d!=NULL);
   switch (t)
   {
+    case CRING_CMD:
+      nKillChar((coeffs)d);
+      break;
+    case NUMBER2_CMD:
+      {
+        number2 n=(number2)d;
+        n2Delete(n);
+        break;
+      }
     case INTVEC_CMD:
     case INTMAT_CMD:
     {
@@ -749,6 +773,9 @@ char *  sleftv::String(void *d, BOOLEAN typed, int dim)
           }
           else
             return pString((poly)d);
+
+        case NUMBER2_CMD:
+          return n2String((number2)d,typed);
 
         case NUMBER_CMD:
           StringSetS((char*) (typed ? "number(" : ""));

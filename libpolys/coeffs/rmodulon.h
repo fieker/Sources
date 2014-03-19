@@ -32,6 +32,7 @@ BOOLEAN nrnIsOne       (number a, const coeffs r);
 BOOLEAN nrnIsMOne      (number a, const coeffs r);
 BOOLEAN nrnIsUnit      (number a, const coeffs r);
 number  nrnGetUnit     (number a, const coeffs r);
+number  nrnAnn         (number a, const coeffs r);
 number  nrnDiv         (number a, number b, const coeffs r);
 number  nrnMod         (number a,number b, const coeffs r);
 number  nrnIntDiv      (number a,number b, const coeffs r);

@@ -716,8 +716,11 @@ nMapFunc ngcSetMap(const coeffs src, const coeffs dst)
 
 void    ngcCoeffWrite  (const coeffs r, BOOLEAN /*details*/)
 {
+  //Print("// CC(%d digits, additional %d digits)\n",
+  //      r->float_len, r->float_len2);  /* long C */
   Print("//   characteristic : 0 (complex:%d digits, additional %d digits)\n",
         r->float_len, r->float_len2);  /* long C */
-  Print("//   1 parameter    : %s \n", n_ParameterNames(r)[0]); // this trailing space is for compatibility with the legacy Singular
+
+  Print("//   1 parameter    : %s\n", n_ParameterNames(r)[0]);
   Print("//   minpoly        : (%s^2+1)\n", n_ParameterNames(r)[0]);
 }

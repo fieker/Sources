@@ -2608,6 +2608,7 @@ number nlXExtGcd(number a, number b, number *s, number *t, number *u, number *v,
 void    nlCoeffWrite  (const coeffs, BOOLEAN /*details*/)
 {
   PrintS("//   characteristic : 0\n");
+  //PrintS("//  QQ\n");
 }
 
 number   nlChineseRemainderSym(number *x, number *q,int rl, BOOLEAN sym, const coeffs CF)

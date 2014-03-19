@@ -35,8 +35,12 @@ void    nrnCoeffWrite  (const coeffs r, BOOLEAN /*details*/)
   long l = (long)mpz_sizeinbase(r->modBase, 10) + 2;
   char* s = (char*) omAlloc(l);
   s= mpz_get_str (s, 10, r->modBase);
+
+  //if (nCoeff_is_Ring_ModN(r)) Print("//  ZZ/%s\n", s);
+  //else if (nCoeff_is_Ring_PtoM(r)) Print("//  ZZ/%s^%lu\n", s, r->modExponent);
   if (nCoeff_is_Ring_ModN(r)) Print("//   coeff. ring is : Z/%s\n", s);
   else if (nCoeff_is_Ring_PtoM(r)) Print("//   coeff. ring is : Z/%s^%lu\n", s, r->modExponent);
+
   omFreeSize((ADDRESS)s, l);
 }
 
@@ -112,9 +116,10 @@ BOOLEAN nrnInitChar (coeffs r, void* p)
   r->cfGcd         = nrnGcd;
   r->cfIsUnit      = nrnIsUnit;
   r->cfGetUnit     = nrnGetUnit;
+  r->cfAnn         = nrnAnn;
   r->cfExtGcd      = nrnExtGcd;
-  r->cfXExtGcd      = nrnXExtGcd;
-  r->cfQuotRem      = nrnQuotRem;
+  r->cfXExtGcd     = nrnXExtGcd;
+  r->cfQuotRem     = nrnQuotRem;
   r->cfName        = ndName;
   r->cfCoeffWrite  = nrnCoeffWrite;
   r->nCoeffIsEqual = nrnCoeffsEqual;
@@ -470,6 +475,19 @@ number nrnGetUnit(number k, const coeffs r)
   }
   nrnDelete((number*) &gcd, NULL);
   return (number)unit;
+}
+
+number nrnAnn(number k, const coeffs r)
+{
+  int_number tmp = (int_number) omAllocBin(gmp_nrz_bin);
+  mpz_init(tmp);
+  mpz_gcd(tmp, (int_number) k, r->modNumber);
+  if (mpz_cmp_si(tmp, 1)==0) {
+    mpz_set_si(tmp, 0);
+    return (number) tmp;
+  }
+  mpz_divexact(tmp, r->modNumber, tmp);
+  return (number) tmp;
 }
 
 BOOLEAN nrnDivBy(number a, number b, const coeffs r)

@@ -57,6 +57,7 @@
 #include "links/silink.h"
 #include "ipshell.h"
 #include "blackbox.h"
+#include "Singular/number2.h"
 
 
 
@@ -399,6 +400,18 @@ static BOOLEAN jiA_NUMBER(leftv res, leftv a, Subexpr)
   if (res->data!=NULL) nDelete((number *)&res->data);
   nNormalize(p);
   res->data=(void *)p;
+  jiAssignAttr(res,a);
+  return FALSE;
+}
+static BOOLEAN jiA_NUMBER2(leftv res, leftv a, Subexpr)
+{
+  number2 n=(number2)a->CopyD(NUMBER2_CMD);
+  if (res->data!=NULL)
+  {
+    number2 nn=(number2)res->data;
+    n2Delete(nn);
+  }
+  res->data=(void *)n;
   jiAssignAttr(res,a);
   return FALSE;
 }
@@ -833,6 +846,12 @@ static BOOLEAN jiA_PACKAGE(leftv res, leftv a, Subexpr)
 static BOOLEAN jiA_DEF(leftv res, leftv a, Subexpr e)
 {
   res->data=(void *)0;
+  return FALSE;
+}
+static BOOLEAN jiA_CRING(leftv res, leftv a, Subexpr e)
+{
+  res->data=(void *)a->CopyD(CRING_CMD);
+  jiAssignAttr(res,a);
   return FALSE;
 }
 /*=================== table =================*/

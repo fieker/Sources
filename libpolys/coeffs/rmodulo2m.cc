@@ -31,8 +31,7 @@ extern omBin gmp_nrz_bin; /* init in rintegers*/
 
 void    nr2mCoeffWrite  (const coeffs r, BOOLEAN /*details*/)
 {
-  PrintS("//   coeff. ring is : ");
-  Print("Z/2^%lu\n", r->modExponent);
+  Print("//  ZZ/2^%lu\n", r->modExponent);
 }
 
 BOOLEAN nr2mCoeffIsEqual(const coeffs r, n_coeffType n, void * p)

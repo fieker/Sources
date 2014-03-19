@@ -50,11 +50,13 @@ extern char *iiArithGetCmd(int);
 *   to start from scratch; without any state (i.e. STATE == 0), then we
 *   start at the top of the list.
 */
+#include <Singular/ipid.h>
 extern "C"
 char *command_generator (char *text, int state)
 {
   static int list_index, len;
-  char *name;
+  static idhdl h;
+  const char *name;
 
   /* If this is a new word to complete, initialize now.  This includes
      saving the length of TEXT for efficiency, and initializing the index
@@ -63,6 +65,7 @@ char *command_generator (char *text, int state)
   {
     list_index = 1;
     len = strlen (text);
+    h=basePack->idroot;
   }
 
   /* Return the next name which partially matches from the command list. */
@@ -73,7 +76,16 @@ char *command_generator (char *text, int state)
     if (strncmp (name, text, len) == 0)
       return (strdup(name));
   }
-
+  if (len>1)
+  {
+    while (h!=NULL)
+    {
+      name=h->id;
+      h=h->next;
+      if (strncmp (name, text, len) == 0)
+        return (strdup(name));
+    }
+  }
   /* If no names matched, then return NULL. */
   return ((char *)NULL);
 }
@@ -180,7 +192,7 @@ char ** singular_completion (char *text, int start, int end)
   #define x_rl_completion_matches rl_completion_matches
   #define x_rl_filename_completion_function rl_filename_completion_function
 #endif
-  if (x_rl_line_buffer[start-1]=='"')
+  if ((start>0) && (x_rl_line_buffer[start-1]=='"'))
     return x_rl_completion_matches (text, (RL_PROC)x_rl_filename_completion_function);
   char **m=x_rl_completion_matches (text, (RL_PROC)command_generator);
 #undef x_rl_line_buffer
@@ -210,11 +222,13 @@ char * fe_fgets_stdin_rl(const char *pr,char *s, int size)
   if (line==NULL)
     return NULL;
 
+  int l=strlen(line);
+  for (int i=l-1;i>=0;i--) line[i]=line[i]&127;
+
   if (*line!='\0')
   {
     add_history (line);
   }
-  int l=strlen(line);
   if (l>=size-1)
   {
     strncpy(s,line,size);
@@ -269,11 +283,13 @@ char * fe_fgets_stdin_drl(const char *pr,char *s, int size)
   if (line==NULL)
     return NULL;
 
+  int l=strlen(line);
+  for (int i=l-1;i>=0;i--) line[i]=line[i]&127;
+
   if (*line!='\0')
   {
     (*fe_add_history) (line);
   }
-  int l=strlen(line);
   if (l>=size-1)
   {
     strncpy(s,line,size);
@@ -300,7 +316,10 @@ char * fe_fgets(const char *pr,char *s, int size)
     fprintf(stdout,"%s",pr);
   }
   mflush();
-  return fgets(s,size,stdin);
+  char *line=fgets(s,size,stdin);
+  if (line!=NULL)
+    for (int i=strlen(line)-1;i>=0;i--) line[i]=line[i]&127;
+  return line;
 }
 
 /* ===================================================================*/

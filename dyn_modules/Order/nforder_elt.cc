@@ -23,8 +23,10 @@ static void EltWrite(number &a, const coeffs r)
 {
   bigintmat * b = (bigintmat*)a;
   if (a) {
-    char * m = b->String();
-    ::Print("%s\n", m);
+    bigintmat * c = b->transpose();
+    char * m = c->String();
+    ::Print("%s^t\n", m);
+    delete c;
   } else {
     Print("(Null)\n");
   }
@@ -32,7 +34,15 @@ static void EltWrite(number &a, const coeffs r)
 
 number EltCreateMat(nforder *a, bigintmat *b)
 {
-  number xx = (number) new bigintmat((bigintmat*)b);
+  number xx;
+  if (b->rows()==1) {
+    assume(b->cols()==a->getDim());
+    xx = (number) b->transpose();
+  } else {
+    assume(b->rows() == a->getDim());
+    assume(b->cols() == 1);
+    xx = (number) new bigintmat((bigintmat*)b);
+  }
 //  Print("Created new element %lx from %lx\n", xx, b);
   return (number) xx;
 }
@@ -82,22 +92,22 @@ static number EltAdd(number a, number b, const coeffs r)
 }
 static number EltDiv(number a, number b, const coeffs r)
 {
-  Werror("%s called\n", __func__);
+  Werror("%s called\n", __func__, a, b, r);
   return NULL;
 }
 static number EltIntDiv(number a, number b, const coeffs r)
 {
-  Werror("IntDiv called on order elts");
+  Werror("IntDiv called on order elts", a, b, r);
   return NULL;
 }
 static number EltIntMod(number a, number b, const coeffs r)
 {
-  Werror("IntMod called on order elts");
+  Werror("IntMod called on order elts", a, b, r);
   return NULL;
 }
 static number EltExactDiv(number a, number b, const coeffs r)
 {
-  Werror("%s called\n", __func__);
+  Werror("%s called\n", __func__, a, b, r);
   return NULL;
 }
    /// init with an integer
@@ -163,43 +173,43 @@ static const char * EltRead(const char * s, number * a, const coeffs r)
 
 static BOOLEAN EltEqual(number a,number b, const coeffs r)
 {
-  Print("%s called\n", __func__);
+  Print("%s called\n", __func__, a, b, r);
   return 0;
 }
 static BOOLEAN EltGreater(number a,number b, const coeffs r)
 {
-  Print("%s called\n", __func__);
+  Print("%s called\n", __func__, a, b, r);
   return 0;
 }
 static BOOLEAN EltIsOne(number a, const coeffs r)
 {
-  Print("%s called\n", __func__);
+  Print("%s called\n", __func__, a, r);
   return 0;
 }
 static BOOLEAN EltIsMOne(number a, const coeffs r)
 {
-  Print("%s called\n", __func__);
+  Print("%s called\n", __func__, a, r);
   return 0;
 }
 static BOOLEAN EltGreaterZero(number a, const coeffs r)
 {
-  Print("%s called\n", __func__);
+  Print("%s called\n", __func__, a, r);
   return 0;
 }
 static BOOLEAN EltIsZero(number a, const coeffs r)
 {
-  Print("%s called\n", __func__);
+  Print("%s called\n", __func__, a, r);
   return 0;
 }
 static void  EltPowerSmall(number a, int i, number * result, const coeffs r)
 {
-  Print("%s called\n", __func__);
+  Print("%s called\n", __func__, a, i, result, r);
   result = NULL;
 }
 
 static nMapFunc EltSetMap(const coeffs src, const coeffs dst)
 {
-  Print("%s called\n", __func__);
+  Print("%s called\n", __func__, src, dst);
   return NULL;
 }
 

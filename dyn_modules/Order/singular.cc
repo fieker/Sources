@@ -67,28 +67,18 @@ static BOOLEAN nforder_ideal_Op2(int op,leftv l, leftv r1, leftv r2)
   switch (op) {
     case '+':
       {
-      nforder_ideal *I = (nforder_ideal*) r1->data,
-                    *J = (nforder_ideal*) r2->data,
-                    *H;
-      if (r1->rtyp == IDHDL)  
-        I = (nforder_ideal*)IDDATA((idhdl)I);
-      if (r2->rtyp == IDHDL) 
-        J = (nforder_ideal*)IDDATA((idhdl)J);
-      H = nf_idAdd(I, J);
+      nforder_ideal *I = (nforder_ideal*) r1->Data(),
+                    *J = (nforder_ideal*) r2->Data(),
+                    *H = nf_idAdd(I, J);
       l->rtyp = nforder_type_id;
       l->data = (void*)H;
       return FALSE;
       }
     case '*':
       {
-      nforder_ideal *I = (nforder_ideal*) r1->data,
-                    *J = (nforder_ideal*) r2->data,
-                    *H;
-      if (r1->rtyp == IDHDL)  
-        I = (nforder_ideal*)IDDATA((idhdl)I);
-      if (r2->rtyp == IDHDL) 
-        J = (nforder_ideal*)IDDATA((idhdl)J);
-      H = nf_idMult(I, J);
+      nforder_ideal *I = (nforder_ideal*) r1->Data(),
+                    *J = (nforder_ideal*) r2->Data(),
+                    *H = nf_idMult(I, J);
       l->rtyp = nforder_type_id;
       l->data = (void*)H;
       return FALSE;

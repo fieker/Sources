@@ -12,7 +12,7 @@ extern n_coeffType nforder_type;
 
 static void WriteRing(const coeffs r, BOOLEAN details)
 {
-  ((nforder *)r->data)->Write();
+  ((nforder *)r->data)->Print();
 }
 
 static char* CoeffString(const coeffs r)

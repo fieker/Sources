@@ -66,6 +66,25 @@ void ndInpAdd(number &a, number b, const coeffs r)
   n_Delete(&a,r);
   a=n;
 }
+void ndPower(number a, int i, number * res, const coeffs r)
+{
+  if (i==0) {
+    *res = n_Init(1, r);
+  } else if (i==1) {
+    *res = n_Copy(a, r);
+  } else if (i==2) {
+    *res = n_Mult(a, a, r);
+  } else if (i<0) {
+    number b = n_Invers(a, r);
+    ndPower(b, -i, res, r);
+    n_Delete(&b, r);
+  } else {
+    ndPower(a, i/2, res, r);
+    if (i&1) {
+      n_InpMult(*res, a, r);
+    } 
+  }
+}
 
 #ifdef LDEBUG
 void   nDBDummy1(number* d,char *, int) { *d=NULL; }
@@ -331,6 +350,7 @@ coeffs nInitChar(n_coeffType t, void * parameter)
     n->cfCoeffString = ndCoeffString; // should alway be changed!
     n->cfInpMult=ndInpMult;
     n->cfInpAdd=ndInpAdd;
+    n->cfPower=ndPower;
     n->cfCopy = ndCopy;
     n->cfIntMod=ndIntMod; /* dummy !! */
     n->cfNormalize=ndNormalize;

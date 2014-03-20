@@ -6,6 +6,8 @@
 #ifndef NFORDER_IDEAL_HPP
 #define NFORDER_IDEAL_HPP
 
+#include <libpolys/coeffs/bigintmat.h>
+
 class nforder_ideal
 {
 private:
@@ -15,8 +17,7 @@ private:
   number norm, norm_den, min, min_den;
   coeffs ord;  // but of dynamic type order! (as cring)
   bigintmat *basis; 
-  
-  
+  number den;  // fractional ideals....
 public:
   
   ////////////////////////////////////
@@ -43,8 +44,14 @@ public:
   number getNorm(), getNormDen(), getMin(), getMinDen();
   inline coeffs order() const { return ord; }
   inline bigintmat * viewBasis() {return basis;};
+  inline bigintmat * getBasis() {return new bigintmat(basis);};
+  inline number viewBasisDen() {return den;};
+  inline int isFractional() {return den!=NULL;};
   inline void setMinTransfer(number a, number b){min = a; min_den = b;}
   inline void setNormTransfer(number a, number b){norm = a; norm_den = b;}
+  inline number viewNorm() { return norm;};
+  inline number viewMin() { return norm;};
+  inline void setBasisDenTransfer(number a){den = a;}
   
   ////////////////////////////////////
   ////// +2 Elementoperationen ///////

@@ -1,10 +1,10 @@
 #include <libpolys/coeffs/bigintmat.h>
-#include "nforder_ideal.h"
 #include "nforder.h"
 #include <reporter/reporter.h>
 #include "libpolys/coeffs/numbers.h" 
 #include "libpolys/coeffs/coeffs.h"
 #include "Singular/ipid.h"
+#include "nforder_ideal.h"
 
 
 
@@ -15,7 +15,7 @@
 
 /*________________0_______________*/ 
 void nforder_ideal::init() {
-  memset(this, 0, sizeof(this));
+  memset(this, 0, sizeof(nforder_ideal));
 }
 
 nforder_ideal::nforder_ideal(bigintmat * _basis, const coeffs O) {
@@ -29,6 +29,9 @@ nforder_ideal::nforder_ideal(nforder_ideal *I, int) {
   ord = I->ord;
   coeffs C = ((nforder *)ord->data)->basecoeffs();
   basis = new bigintmat(I->basis);
+  if (I->den) {
+    den = n_Copy(I->den, C);
+  }
   if (I->norm) {
     norm = n_Copy(I->norm, C);
     norm_den = n_Copy(I->norm_den, C);
@@ -41,10 +44,17 @@ nforder_ideal::nforder_ideal(nforder_ideal *I, int) {
 
 void nforder_ideal::Write() {
   coeffs C = ((nforder *)ord->data)->basecoeffs();
-  StringAppend("Ideal of order");
-  n_CoeffWrite(ord);
-  StringAppend("\nwith basis:\n");
+  if (isFractional()) {
+    StringAppendS("Fractional ");
+  }
+  StringAppend("Ideal with basis:\n");
   basis->Write();
+  if (isFractional()) {
+    number d;
+    StringAppend(" / ");
+    n_Write((d = viewBasisDen()), C);
+  }
+  StringAppendS("\n");
   if (norm) {
     StringAppendS("and norm ");
     n_Write(norm, C);
@@ -76,6 +86,7 @@ void nforder_ideal::Print() {
 nforder_ideal::~nforder_ideal() {
   if (basis) delete basis;
   coeffs C = ((nforder *)ord->data)->basecoeffs();
+  if (den) n_Delete(&den, C);
   if (norm) {
     n_Delete(&norm, C);
     n_Delete(&norm_den, C);
@@ -91,19 +102,146 @@ nforder_ideal * nf_idAdd(nforder_ideal *A, nforder_ideal *B)
   assume(A->order() == B->order());
   nforder * O = (nforder*) A->order()->data;
   coeffs C = O->basecoeffs();
-  bigintmat * r = new bigintmat(O->getDim(), 2*O->getDim(), C);
-  r->concatcol(A->viewBasis(), B->viewBasis());
-  r->hnf();
+  bigintmat * r = new bigintmat(O->getDim(), 2*O->getDim(), C), 
+            *s1, *s2;
+  number den = NULL;
+  if (B->isFractional()) {
+    s1 = A->getBasis();
+    s1->skalmult(B->viewBasisDen(), C);
+    den = n_Copy(B->viewBasisDen(), C);
+  } else {
+    s1 = A->viewBasis();
+  }
+  if (A->isFractional()) {
+    s2 = B->getBasis();
+    s2->skalmult(A->viewBasisDen(), C);
+    if (den) {
+      number d = n_Mult(den, A->viewBasisDen(), C);
+      n_Delete(&den, C);
+      den = d;
+    } else {
+      den = n_Copy(A->viewBasisDen(), C);
+    }
+  } else {
+    s2 = B->viewBasis();
+  }
+  r->concatcol(s1, s2);
+
+  if (A->isFractional())
+    delete s2;
+  if (B->isFractional())
+    delete s1;
+
+  number modA = NULL, modB = NULL;
+  if (!(modA = A->viewMin())) {
+    modA = A->viewNorm();
+  }
+  if (!(modB = B->viewMin())) {
+    modB = B->viewNorm();
+  }
+  if (modA && modB) {
+    number mod = n_Gcd(modA, modB, C);
+    number mm = n_Mult(mod, mod, C);
+    bigintmat * h = r->modhnf(mm, C);
+    r->copy(h);
+    delete h;
+    n_Delete(&mod, C);
+    n_Delete(&mm, C);
+  } else {
+    r->hnf();
+  }
   bigintmat * t1 = new bigintmat(O->getDim(), O->getDim(), C),
             * t2 = new bigintmat(t1);
   r->splitcol(t1, t2);
   delete t1;
   delete r;
+  if (den) {
+    t2->simplifyContentDen(&den);
+  }
   nforder_ideal *D = new nforder_ideal(t2, A->order());
+  if (den)
+    D->setBasisDenTransfer(den);
+
   if (O->oneIsOne())
-    D->setMinTransfer(t2->get(1,1), n_Init(1, C));
-  D->setNormTransfer(t2->det(), n_Init(1, C));
+    D->setMinTransfer(t2->get(1,1), den ? n_Copy(den, C) : n_Init(1, C));
+  D->setNormTransfer(t2->det(), den ? n_Copy(den, C) : n_Init(1, C));
   delete t2;
+  return D;
+}
+
+
+nforder_ideal * nf_idMult(nforder_ideal *A, nforder_ideal *B)
+{
+  assume(A->order() == B->order());
+  nforder * O = (nforder*) A->order()->data;
+  coeffs C = O->basecoeffs();
+  number den = NULL;
+
+  bigintmat * r= NULL;
+  bigintmat * c = new bigintmat(O->getDim(), 1, C),
+            *rep = new bigintmat(O->getDim(), O->getDim(), C);
+  for(int i=0; i<O->getDim(); i++) {
+    A->viewBasis()->getcol(i+1, c);
+    O->multmap(c, rep);
+    bigintmat * cc = bimMult(rep, B->viewBasis());
+    if (r) {
+      bigintmat * s = new bigintmat(O->getDim(), r->cols()+O->getDim(), C);
+      s->concatcol(r, cc);
+      delete r;
+      delete cc;
+      r = s;
+    } else {
+      r = cc;
+    }
+  }
+  delete c;
+
+  number modA = NULL, modB = NULL;
+  if (!(modA = A->viewMin())) {
+    modA = A->viewNorm();
+  }
+  if (!(modB = B->viewMin())) {
+    modB = B->viewNorm();
+  }
+
+
+  if (modA && modB) {
+    number mod = n_Mult(modA, modB, C);
+    number mm = n_Mult(mod, mod, C);
+    bigintmat * h = r->modhnf(mm, C);
+    r->copy(h);
+    delete h;
+    n_Delete(&mod, C);
+    n_Delete(&mm, C);
+  } else {
+    r->hnf();
+  }
+
+  bigintmat * t1 = new bigintmat(O->getDim(), O->getDim(), C);
+  r->getColRange(r->cols()-O->getDim()+1, O->getDim(), t1);
+  delete r;
+  t1->Print();
+
+  if (A->isFractional()) {
+    den = A->viewBasisDen();
+  } 
+  if (B->isFractional()) {
+    if (den)
+      den = n_Mult(den, B->viewBasisDen(), C);
+    else
+      den = n_Copy(B->viewBasisDen(), C);
+  }
+  if (den) {
+    t1->simplifyContentDen(&den);
+  }
+  nforder_ideal *D = new nforder_ideal(t1, A->order());
+  if (den)
+    D->setBasisDenTransfer(den);
+
+  if (O->oneIsOne())
+    D->setMinTransfer(t1->get(1,1), den ? n_Copy(den, C) : n_Init(1, C));
+  D->setNormTransfer(t1->det(), den ? n_Copy(den, C) : n_Init(1, C));
+  delete t1;
   return D;
 }
 

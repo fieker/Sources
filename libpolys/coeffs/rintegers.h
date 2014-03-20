@@ -38,7 +38,7 @@
 #define SR_INT    1L
 #define INT_TO_SR(INT)  ((number) (((long)INT << 2) + SR_INT))
 #define SR_TO_INT(SR)   (((long)SR) >> 2)
-#define IS_SMALL(A)     (SR_HDL(A) & SR_INT)
+#define n_Z_IS_SMALL(A)     (SR_HDL(A) & SR_INT)
 #define INT_IS_SMALL(A) ( ((A << 1) >> 1) == A )
 
 #define MP_SMALL 1

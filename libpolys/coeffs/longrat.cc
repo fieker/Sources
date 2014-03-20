@@ -13,6 +13,7 @@
 #include <factory/factory.h>
 
 #include <coeffs/longrat.h>
+#include <coeffs/rintegers.h>
 
 
 // 64 bit version:
@@ -145,6 +146,26 @@ number nlMapGMP(number from, const coeffs /*src*/, const coeffs /*dst*/)
   z=nlShort3(z);
   return z;
 }
+
+/*2
+* convert from an n_Z
+*/
+static number nlMapZ(number from, const coeffs /*src*/, const coeffs /*dst*/)
+{
+  number z=ALLOC_RNUMBER();
+#if defined(LDEBUG)
+  z->debug=123456;
+#endif
+  if (n_Z_IS_SMALL(from))
+    mpz_init_set_si(z->z, SR_TO_INT(from));
+  else
+    mpz_init_set(z->z,(mpz_ptr) from);
+  //mpz_init_set_ui(&z->n,1);
+  z->s = 3;
+  z=nlShort3(z);
+  return z;
+}
+
 
 /*2
 * convert from an machine long
@@ -2121,7 +2142,10 @@ nMapFunc nlSetMap(const coeffs src, const coeffs dst)
     return nlMapLongR; /* long R -> Q */
   }
 #ifdef HAVE_RINGS
-  if (nCoeff_is_Ring_Z(src) || nCoeff_is_Ring_PtoM(src) || nCoeff_is_Ring_ModN(src))
+  if (nCoeff_is_Ring_Z(src)) {
+    return nlMapZ;
+  }
+  if (nCoeff_is_Ring_PtoM(src) || nCoeff_is_Ring_ModN(src))
   {
     return nlMapGMP;
   }

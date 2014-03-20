@@ -97,7 +97,7 @@ number _nrzMult (number a, number b, const coeffs R)
 number nrzMult (number a, number b, const coeffs R)
 #endif
 {
-  if (IS_SMALL(a) && IS_SMALL(b)) {
+  if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b)) {
   //from longrat.cc 
     if (SR_TO_INT(b)==0)
       return b;
@@ -113,12 +113,12 @@ number nrzMult (number a, number b, const coeffs R)
     mpz_set_si(erg, SR_TO_INT(a));
     mpz_mul_si(erg, erg, SR_TO_INT(b));
     return (number) erg;
-  } else if (IS_SMALL(a)) {
+  } else if (n_Z_IS_SMALL(a)) {
     int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init_set(erg, (int_number) b);
     mpz_mul_si(erg, erg, SR_TO_INT(a));
     return (number) erg;
-  } else if (IS_SMALL(b)) {
+  } else if (n_Z_IS_SMALL(b)) {
     int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init_set(erg, (int_number) a);
     mpz_mul_si(erg, erg, SR_TO_INT(b));
@@ -155,15 +155,15 @@ static int int_gcd(int a, int b)
 number nrzLcm (number a, number b, const coeffs R)
 {
   int_number erg;
-  if (IS_SMALL(a) && IS_SMALL(b)) {
+  if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b)) {
     int g = int_gcd(SR_TO_INT(a), SR_TO_INT(b));
     return nrzMult(a, INT_TO_SR(SR_TO_INT(b)/g), R);
-  } else if (IS_SMALL(a)) {
+  } else if (n_Z_IS_SMALL(a)) {
     erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init_set(erg, (int_number) b);
     unsigned long g = mpz_gcd_ui(NULL, erg, (unsigned long) ABS(SR_TO_INT(a)));
     mpz_mul_si(erg, erg, SR_TO_INT(a)/g);
-  } else if (IS_SMALL(b)) {
+  } else if (n_Z_IS_SMALL(b)) {
     erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init_set(erg, (int_number) a);
     unsigned long g = mpz_gcd_ui(NULL, erg, (unsigned long) ABS(SR_TO_INT(b)));
@@ -182,15 +182,15 @@ number nrzLcm (number a, number b, const coeffs R)
  */
 number nrzGcd (number a,number b,const coeffs R)
 {
-  if (IS_SMALL(a) && IS_SMALL(b)) {
+  if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b)) {
     int g = int_gcd(SR_TO_INT(a), SR_TO_INT(b));
     return INT_TO_SR(g);
-  } else if (IS_SMALL(a)) { 
+  } else if (n_Z_IS_SMALL(a)) { 
     if (a==INT_TO_SR(0))
       return nrzCopy(b, R);
     unsigned long g = mpz_gcd_ui(NULL, (int_number)b, (unsigned long) ABS(SR_TO_INT(a)));
     return INT_TO_SR((int) g);
-  } else if (IS_SMALL(b)) {
+  } else if (n_Z_IS_SMALL(b)) {
     if (b==INT_TO_SR(0))
       return nrzCopy(a, R);
     unsigned long g = mpz_gcd_ui(NULL, (int_number)a, (unsigned long) ABS(SR_TO_INT(b)));
@@ -249,7 +249,7 @@ static int int_extgcd(int a, int b, int * u, int* x, int * v, int* y)
 
 number  nrzExtGcd (number a, number b, number *s, number *t, const coeffs)
 {
-  if (IS_SMALL(a) && IS_SMALL(b)) {
+  if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b)) {
     int u, v, x, y;
     int g = int_extgcd(SR_TO_INT(a), SR_TO_INT(b), &u, &v, &x, &y);
     *s = INT_TO_SR(u);
@@ -257,12 +257,12 @@ number  nrzExtGcd (number a, number b, number *s, number *t, const coeffs)
     return INT_TO_SR(g);
   } else {
     mpz_t aa, bb;
-    if (IS_SMALL(a)) {
+    if (n_Z_IS_SMALL(a)) {
       mpz_init_set_si(aa, SR_TO_INT(a));
     } else {
       mpz_init_set(aa, (int_number) a);
     }
-    if (IS_SMALL(b)) {
+    if (n_Z_IS_SMALL(b)) {
       mpz_init_set_si(bb, SR_TO_INT(b));
     } else {
       mpz_init_set(bb, (int_number) b);
@@ -309,7 +309,7 @@ number  _nrzXExtGcd (number a, number b, number *s, number *t, number *u, number
 number  nrzXExtGcd (number a, number b, number *s, number *t, number *u, number *v, const coeffs )
 #endif
 {
-  if (IS_SMALL(a) && IS_SMALL(b)) {
+  if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b)) {
     int uu, vv, x, y;
     int g = int_extgcd(SR_TO_INT(a), SR_TO_INT(b), &uu, &vv, &x, &y);
     *s = INT_TO_SR(uu);
@@ -319,12 +319,12 @@ number  nrzXExtGcd (number a, number b, number *s, number *t, number *u, number 
     return INT_TO_SR(g);
   } else {
     mpz_t aa, bb;
-    if (IS_SMALL(a)) {
+    if (n_Z_IS_SMALL(a)) {
       mpz_init_set_si(aa, SR_TO_INT(a));
     } else {
       mpz_init_set(aa, (int_number) a);
     }
-    if (IS_SMALL(b)) {
+    if (n_Z_IS_SMALL(b)) {
       mpz_init_set_si(bb, SR_TO_INT(b));
     } else {
       mpz_init_set(bb, (int_number) b);
@@ -387,16 +387,16 @@ number nrzQuotRem (number a, number b, number * r, const coeffs )
 #endif
 {
   assume(SR_TO_INT(b));
-  if (IS_SMALL(a) && IS_SMALL(b)) {
+  if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b)) {
     if (r)
       *r = INT_TO_SR(SR_TO_INT(a) % SR_TO_INT(b));
     return INT_TO_SR(SR_TO_INT(a)/SR_TO_INT(b));
-  } else if (IS_SMALL(a)) {
+  } else if (n_Z_IS_SMALL(a)) {
     //a is small, b is not, so q=0, r=a
     if (r)
       *r = a;
     return INT_TO_SR(0);
-  } else if (IS_SMALL(b)) {
+  } else if (n_Z_IS_SMALL(b)) {
     unsigned long rr;
     int_number qq = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init(qq);
@@ -431,7 +431,7 @@ void nrzPower (number a, int i, number * result, const coeffs)
   int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
   mpz_init(erg);
   mpz_t aa;
-  if (IS_SMALL(a))
+  if (n_Z_IS_SMALL(a))
     mpz_init_set_si(aa, SR_TO_INT(a));
   else
     mpz_init_set(aa, (int_number) a);
@@ -453,7 +453,7 @@ number nrzInit (long i, const coeffs)
 void nrzDelete(number *a, const coeffs)
 {
   if (*a == NULL) return;
-  if (IS_SMALL(*a)) {
+  if (n_Z_IS_SMALL(*a)) {
     *a = NULL;
     return;
   }
@@ -464,7 +464,7 @@ void nrzDelete(number *a, const coeffs)
 
 number nrzCopy(number a, const coeffs)
 {
-  if (IS_SMALL(a)) return a;
+  if (n_Z_IS_SMALL(a)) return a;
   int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
   mpz_init_set(erg, (int_number) a);
   return (number) erg;
@@ -481,7 +481,7 @@ int nrzSize(number a, const coeffs)
  */
 int nrzInt(number &n, const coeffs)
 {
-  if (IS_SMALL(n)) return SR_TO_INT(n);
+  if (n_Z_IS_SMALL(n)) return SR_TO_INT(n);
   return (int) mpz_get_si( (int_number)n);
 }
 #if CF_DEBUG
@@ -505,14 +505,14 @@ number _nrzAdd (number a, number b, const coeffs R)
 number nrzAdd (number a, number b, const coeffs R)
 #endif
 {
-  if (IS_SMALL(a) && IS_SMALL(b)) {
+  if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b)) {
     int c = SR_TO_INT(a) + SR_TO_INT(b);
     if (INT_IS_SMALL(c))
       return INT_TO_SR(c);
     int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init_set_si(erg, c);
     return (number) erg;
-  } else if (IS_SMALL(a)) { 
+  } else if (n_Z_IS_SMALL(a)) { 
     int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init(erg);
     if (SR_TO_INT(a)>0) 
@@ -520,7 +520,7 @@ number nrzAdd (number a, number b, const coeffs R)
     else
       mpz_sub_ui(erg, (int_number) b, (unsigned long)-(SR_TO_INT(a)));
     return nrz_short((number) erg);
-  } else if (IS_SMALL(b)) {
+  } else if (n_Z_IS_SMALL(b)) {
     int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init(erg);
     if (SR_TO_INT(b)>0) 
@@ -538,14 +538,14 @@ number nrzAdd (number a, number b, const coeffs R)
 
 number nrzSub (number a, number b, const coeffs)
 {
-  if (IS_SMALL(a) && IS_SMALL(b)) {
+  if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b)) {
     int c = SR_TO_INT(a) - SR_TO_INT(b);
     if (INT_IS_SMALL(c))
       return INT_TO_SR(c);
     int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init_set_si(erg, c);
     return (number) erg;
-  } else if (IS_SMALL(a)) { 
+  } else if (n_Z_IS_SMALL(a)) { 
     int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init(erg);
    
@@ -556,7 +556,7 @@ number nrzSub (number a, number b, const coeffs)
       mpz_neg(erg, erg);
     }
     return nrz_short((number) erg);
-  } else if (IS_SMALL(b)) {
+  } else if (n_Z_IS_SMALL(b)) {
     int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init(erg);
     if (INT_TO_SR(b)>0)
@@ -575,7 +575,7 @@ number nrzSub (number a, number b, const coeffs)
 
 number  nrzGetUnit (number n, const coeffs r)
 {
-  if (IS_SMALL(n)) {
+  if (n_Z_IS_SMALL(n)) {
     if (SR_TO_INT(n)<0)
       return INT_TO_SR(-1);
     else
@@ -597,29 +597,29 @@ number nrzAnn(number n, const coeffs)
 
 BOOLEAN nrzIsUnit (number a, const coeffs)
 {
-  return IS_SMALL(a) && ABS(SR_TO_INT(a))==1;
+  return n_Z_IS_SMALL(a) && ABS(SR_TO_INT(a))==1;
 }
 
 BOOLEAN nrzIsZero (number  a, const coeffs)
 {
-  return IS_SMALL(a) && a==INT_TO_SR(0);
+  return n_Z_IS_SMALL(a) && a==INT_TO_SR(0);
 }
 
 BOOLEAN nrzIsOne (number a, const coeffs)
 {
-  return IS_SMALL(a) && a==INT_TO_SR(1);
+  return n_Z_IS_SMALL(a) && a==INT_TO_SR(1);
 }
 
 BOOLEAN nrzIsMOne (number a, const coeffs)
 {
-  return IS_SMALL(a) && a==INT_TO_SR(-1);
+  return n_Z_IS_SMALL(a) && a==INT_TO_SR(-1);
 }
 
 BOOLEAN nrzEqual (number a,number b, const coeffs)
 {
-  if (IS_SMALL(a) && IS_SMALL(b))
+  if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b))
     return a==b;
-  else if (IS_SMALL(a) || IS_SMALL(b))
+  else if (n_Z_IS_SMALL(a) || n_Z_IS_SMALL(b))
     return FALSE;
   else
     return 0 == mpz_cmp((int_number) a, (int_number) b);
@@ -627,11 +627,11 @@ BOOLEAN nrzEqual (number a,number b, const coeffs)
 
 BOOLEAN nrzGreater (number a,number b, const coeffs)
 {
-  if (IS_SMALL(a) && IS_SMALL(b))
+  if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b))
     return a>b;
-  else if (IS_SMALL(a))
+  else if (n_Z_IS_SMALL(a))
     return FALSE;
-  else if (IS_SMALL(b))
+  else if (n_Z_IS_SMALL(b))
     return TRUE;
   return 0 < mpz_cmp((int_number) a, (int_number) b);
 }
@@ -654,11 +654,11 @@ int nrzDivComp(number a, number b, const coeffs r)
 
 BOOLEAN nrzDivBy (number a,number b, const coeffs)
 {
-  if (IS_SMALL(a) && IS_SMALL(b)) {
+  if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b)) {
     return SR_TO_INT(a) %SR_TO_INT(b) ==0;
-  } else if (IS_SMALL(a)) {
+  } else if (n_Z_IS_SMALL(a)) {
     return a==INT_TO_SR(0);
-  } else if (IS_SMALL(b)) {
+  } else if (n_Z_IS_SMALL(b)) {
     return mpz_divisible_ui_p((int_number)a, (unsigned long)ABS(SR_TO_INT(b))) != 0;
   } else     
     return mpz_divisible_p((int_number) a, (int_number) b) != 0;
@@ -667,19 +667,19 @@ BOOLEAN nrzDivBy (number a,number b, const coeffs)
 number nrzDiv (number a,number b, const coeffs R)
 {
   assume(SR_TO_INT(b));
-  if (IS_SMALL(a) && IS_SMALL(b)) {
+  if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b)) {
     if (SR_TO_INT(a) % SR_TO_INT(b)) {
       WerrorS("1:Division by non divisible element.");
       WerrorS("Result is without remainder.");
     }
     return INT_TO_SR(SR_TO_INT(a)/SR_TO_INT(b));
-  } else if (IS_SMALL(a)) {
+  } else if (n_Z_IS_SMALL(a)) {
     if (SR_TO_INT(a)) {
       WerrorS("2:Division by non divisible element.");
       WerrorS("Result is without remainder.");
     }
     return INT_TO_SR(0);
-  } else if (IS_SMALL(b)) {
+  } else if (n_Z_IS_SMALL(b)) {
     int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_t r;
     mpz_init(r);
@@ -726,11 +726,11 @@ number nrzIntDiv (number a,number b, const coeffs)
 {
   assume(SR_TO_INT(b));
   mpz_t aa, bb;
-  if (IS_SMALL(a))
+  if (n_Z_IS_SMALL(a))
     mpz_init_set_si(aa, SR_TO_INT(a));
   else
     mpz_init_set(aa, (int_number) a);
-  if (IS_SMALL(b))
+  if (n_Z_IS_SMALL(b))
     mpz_init_set_si(bb, SR_TO_INT(b));
   else
     mpz_init_set(bb, (int_number) b);
@@ -746,11 +746,11 @@ number nrzIntMod (number a,number b, const coeffs)
 {
   mpz_t aa, bb;
   assume(SR_TO_INT(b));
-  if (IS_SMALL(a))
+  if (n_Z_IS_SMALL(a))
     mpz_init_set_si(aa, SR_TO_INT(a));
   else
     mpz_init_set(aa, (int_number) a);
-  if (IS_SMALL(b))
+  if (n_Z_IS_SMALL(b))
     mpz_init_set_si(bb, SR_TO_INT(b));
   else
     mpz_init_set(bb, (int_number) b);
@@ -779,7 +779,7 @@ number  nrzInvers (number c, const coeffs r)
 number nrzNeg (number c, const coeffs)
 {
 // nNeg inplace !!!
-  if (IS_SMALL(c))
+  if (n_Z_IS_SMALL(c))
     return INT_TO_SR(-SR_TO_INT(c));
   mpz_mul_si((int_number) c, (int_number) c, -1);
   return c;
@@ -868,7 +868,7 @@ void nrzWrite (number &a, const coeffs)
   }
   else
   {
-    if (IS_SMALL(a)) {
+    if (n_Z_IS_SMALL(a)) {
       StringAppend("%d", SR_TO_INT(a));
     } else {
       int l=mpz_sizeinbase((int_number) a, 10) + 2;
@@ -934,7 +934,7 @@ static CanonicalForm nrzConvSingNFactoryN( number n, BOOLEAN setChar, const coef
   if (setChar) setCharacteristic( 0 );
 
   CanonicalForm term;
-  if ( IS_SMALL(n))
+  if ( n_Z_IS_SMALL(n))
   {
     term = SR_TO_INT(n);
   }
@@ -963,7 +963,7 @@ static number nrzConvFactoryNSingN( const CanonicalForm n, const coeffs r)
 
 static void nrzMPZ(mpz_t res, number &a, const coeffs)
 {
-  if (IS_SMALL(a))
+  if (n_Z_IS_SMALL(a))
     mpz_init_set_si(res, SR_TO_INT(a));
   else
     mpz_init_set(res, (int_number) a);

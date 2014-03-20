@@ -674,7 +674,7 @@ number nrnMapGMP(number from, const coeffs /*src*/, const coeffs dst)
 number nrnMapZ(number from, const coeffs /*src*/, const coeffs dst)
 {
   int_number erg = (int_number)omAllocBin(gmp_nrz_bin);
-  if (IS_SMALL(from))
+  if (n_Z_IS_SMALL(from))
     mpz_init_set_si(erg, SR_TO_INT(from));
   else
     mpz_init_set(erg, (int_number) from);

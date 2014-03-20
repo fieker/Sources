@@ -253,7 +253,6 @@ BOOLEAN n_nfOrderInit(coeffs r,  void * parameter)
   r->cfIsOne = EltIsOne;
   r->cfIsMOne = EltIsMOne;
   r->cfGreaterZero = EltGreaterZero;
-  r->cfPower = EltPowerSmall;
   r->cfDelete = EltDelete;
   r->cfSetMap = EltSetMap;
 #ifdef LDEBUG

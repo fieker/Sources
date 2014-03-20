@@ -30,35 +30,30 @@ static void * nforder_ideal_Init(blackbox */*b*/)
 static char * nforder_ideal_String(blackbox *b, void *d)
 {
   StringSetS("");
-  if (d==NULL) StringAppendS("oo");
-  else StringAppend("Ideal(%lx)",d);
   if (d) ((nforder_ideal *)d)->Write();
+  else StringAppendS("o not defined o");
   return StringEndS();
 }
-static void * nforder_ideal_Copy(blackbox*b, void *d)
-{  coeffs c=(coeffs)d; return new nforder_ideal((nforder_ideal*)d, 1);}
+static void * nforder_ideal_Copy(blackbox* /*b*/, void *d)
+{ return new nforder_ideal((nforder_ideal*)d, 1);}
 
 static BOOLEAN nforder_ideal_Assign(leftv l, leftv r)
 {
   if (l->Typ()==r->Typ())
   {
-    coeffs lc=(coeffs)l->Data();
-    if (lc!=NULL) lc->ref--;
-    coeffs rc=(coeffs)r->Data();
-    if (rc!=NULL) rc->ref++;
     if (l->rtyp==IDHDL)
     {
-      IDDATA((idhdl)l->data)=(char *)rc;
+      IDDATA((idhdl)l->data)=(char *)nforder_ideal_Copy((blackbox*)NULL, r->data);
     }
     else
     {
-      l->data=(void *)rc;
+      l->data=(char *)nforder_ideal_Copy((blackbox*)NULL, r->data);
     }
     return FALSE;
   }
   return TRUE;
 }
-static void nforder_ideal_destroy(blackbox *b, void *d)
+static void nforder_ideal_destroy(blackbox * /*b*/, void *d)
 {
   if (d!=NULL)
   {
@@ -68,12 +63,32 @@ static void nforder_ideal_destroy(blackbox *b, void *d)
 
 static BOOLEAN nforder_ideal_Op2(int op,leftv l, leftv r1, leftv r2)
 {
+  Print("Types are %d %d\n", r1->Typ(), r2->Typ());
   switch (op) {
     case '+':
       {
       nforder_ideal *I = (nforder_ideal*) r1->data,
                     *J = (nforder_ideal*) r2->data,
-                    *H = nf_idAdd(I, J);
+                    *H;
+      if (r1->rtyp == IDHDL)  
+        I = (nforder_ideal*)IDDATA((idhdl)I);
+      if (r2->rtyp == IDHDL) 
+        J = (nforder_ideal*)IDDATA((idhdl)J);
+      H = nf_idAdd(I, J);
+      l->rtyp = nforder_type_id;
+      l->data = (void*)H;
+      return FALSE;
+      }
+    case '*':
+      {
+      nforder_ideal *I = (nforder_ideal*) r1->data,
+                    *J = (nforder_ideal*) r2->data,
+                    *H;
+      if (r1->rtyp == IDHDL)  
+        I = (nforder_ideal*)IDDATA((idhdl)I);
+      if (r2->rtyp == IDHDL) 
+        J = (nforder_ideal*)IDDATA((idhdl)J);
+      H = nf_idMult(I, J);
       l->rtyp = nforder_type_id;
       l->data = (void*)H;
       return FALSE;
@@ -106,6 +121,53 @@ static BOOLEAN nforder_ideal_bb_setup()
 }
 
 // module stuff: ------------------------------------------------------------
+
+BOOLEAN checkArgumentIsOrder(leftv arg, nforder * cmp, nforder ** result)
+{
+  if (arg->Typ() != CRING_CMD) return FALSE;
+  coeffs R = (coeffs) arg->Data();
+  if (getCoeffType(R) != nforder_type) return FALSE;
+  nforder * O = (nforder*) R->data;
+  if (cmp && cmp != O) return FALSE;
+  *result = O;
+  return TRUE;
+}
+
+BOOLEAN checkArgumentIsBigintmat(leftv arg, coeffs r, bigintmat ** result)
+{
+  if (arg->Typ() != BIGINTMAT_CMD) return FALSE;
+  bigintmat * b = (bigintmat*) arg->Data();
+  if (r && b->basecoeffs() != r) return FALSE;
+  *result = b;
+  return TRUE;
+}
+
+BOOLEAN checkArgumentIsNumber2(leftv arg, coeffs r, number2 * result)
+{
+  if (arg->Typ() != NUMBER2_CMD) return FALSE;
+  number2 b = (number2) arg->Data();
+  if (r && b->cf != r) return FALSE;
+  *result = b;
+  return TRUE;
+}
+
+
+BOOLEAN checkBigintmatDim(bigintmat * b, int r, int c)
+{
+  if (b->rows() != r) return FALSE;
+  if (b->cols() != c) return FALSE;
+  return TRUE;
+}
+
+#define returnNumber(_res, _n, _R) \
+  do {                                                          \
+    number2 _r = (number2)omAlloc(sizeof(struct snumber2));     \
+    _r->n = _n;                                                 \
+    _r->cf = _R;                                                \
+    _res->rtyp = NUMBER2_CMD;                                   \
+    _res->data = _r;                                            \
+  } while (0)
+    
 
 static BOOLEAN build_ring(leftv result, leftv arg)
 {
@@ -143,66 +205,60 @@ static BOOLEAN build_ring(leftv result, leftv arg)
 
 static BOOLEAN ideal_from_mat(leftv result, leftv arg)
 {
-  if (arg->Typ() != CRING_CMD) {
-    WerrorS("1:usage: IdealFromMat(order, basis matrix)");
+  nforder * O;
+  if (!checkArgumentIsOrder(arg, NULL, &O)) {
+    WerrorS("usage: IdealFromMat(order, basis matrix)");
     return TRUE;
   }
-  coeffs C = (coeffs)arg->Data();
-  if (getCoeffType(C) != nforder_type) {
-    WerrorS("2:usage: IdealFromMat(order, basis matrix)");
-    return TRUE;
-  }
-  nforder *O = (nforder*) (C->data);
   arg = arg->next;
-  if (arg->Typ()!=BIGINTMAT_CMD) {
+  bigintmat *b;
+  if (!checkArgumentIsBigintmat(arg, O->basecoeffs(), &b)) {
     WerrorS("3:usage: IdealFromMat(order, basis matrix)");
     return TRUE;
   }
-  bigintmat *b = (bigintmat*) arg->Data();
   result->rtyp = nforder_type_id;
-  result->data = new nforder_ideal(b, C);
+  result->data = new nforder_ideal(b, nInitChar(nforder_type, O));
   return FALSE;
 }
 
 
 static BOOLEAN elt_from_mat(leftv result, leftv arg)
 {
-  number2 r = (number2)omAlloc(sizeof(struct snumber2));
-  coeffs C = (coeffs)arg->Data();
-  nforder *O = (nforder*) (C->data);
+  nforder * O;
+  if (!checkArgumentIsOrder(arg, NULL, &O)) {
+    WerrorS("usage: EltFromMat(order, matrix)");
+    return TRUE;
+  }
   arg = arg->next;
-  bigintmat *b = (bigintmat*) arg->Data();
-  result->rtyp = NUMBER2_CMD;
-  r->n = (number)EltCreateMat(O, b);
-  r->cf = nInitChar(nforder_type, O);
-  result->data = r;
+  bigintmat *b;
+  if (!checkArgumentIsBigintmat(arg, O->basecoeffs(), &b)) {
+    WerrorS("2:usage: EltFromMat(order, matrix)");
+    return TRUE;
+  }
+  returnNumber(result, (number)EltCreateMat(O, b), nInitChar(nforder_type, O));
   return FALSE;
 }
 
 static BOOLEAN discriminant(leftv result, leftv arg)
 {
-  assume (arg->Typ()==CRING_CMD);
-  coeffs c = (coeffs)arg->Data();
-  assume (c->type == nforder_type);
-  nforder * o = (nforder*)c->data;
-  o->calcdisc();
+  nforder * O;
+  if (!checkArgumentIsOrder(arg, NULL, &O)) {
+    WerrorS("usage: Discriminant(order)");
+    return TRUE;
+  }
+  O->calcdisc();
 
-  number2 tt = (number2)omAlloc(sizeof(struct snumber2));
-  tt->n = o->getDisc();
-  tt->cf = o->basecoeffs();
-  result->rtyp = NUMBER2_CMD;
-  result->data = tt;
-
+  returnNumber(result, O->getDisc(), O->basecoeffs());
   return FALSE;
 }
 
 static BOOLEAN pMaximalOrder(leftv result, leftv arg)
 {
-  assume (arg->Typ()==CRING_CMD);
-  coeffs c = (coeffs)arg->Data();
-  assume (c);
-  assume (c->type == nforder_type);
-  nforder * o = (nforder*)c->data;
+  nforder * o;
+  if (!checkArgumentIsOrder(arg, NULL, &o)) {
+    WerrorS("usage: pMaximalOrder(order, int)");
+    return TRUE;
+  }
   arg = arg->next;
   long p = (int)(long)arg->Data();
   number P = n_Init(p, o->basecoeffs());
@@ -236,11 +292,11 @@ static BOOLEAN oneStep(leftv result, leftv arg)
 
 static BOOLEAN nforder_simplify(leftv result, leftv arg)
 {
-  assume (arg->Typ()==CRING_CMD);
-  coeffs c = (coeffs)arg->Data();
-  assume (c->type = nforder_type);
-  nforder * o = (nforder*)c->data;
-
+  nforder * o;
+  if (!checkArgumentIsOrder(arg, NULL, &o)) {
+    WerrorS("usage: NFOrderSimplify(order)");
+    return TRUE;
+  }
   nforder *op = o->simplify();
 
   result->rtyp=CRING_CMD; // set the result type
@@ -251,35 +307,39 @@ static BOOLEAN nforder_simplify(leftv result, leftv arg)
 
 static BOOLEAN eltTrace(leftv result, leftv arg)
 {
-  assume (arg->Typ()==NUMBER2_CMD);
-  number2 a = (number2) arg->Data();
+  number2 a;
+  if (!checkArgumentIsNumber2(arg, NULL, &a)) {
+    WerrorS("EltTrace(elt)");
+    return TRUE;
+  }
   coeffs  c = a->cf;
+  if (getCoeffType(c) != nforder_type) {
+    WerrorS("EltTrace(elt in order)");
+    return TRUE;
+  }
   bigintmat * aa = (bigintmat*)a->n;
-  assume (c->type == nforder_type);
   nforder * o = (nforder*)c->data;
   number t = o->elTrace(aa);
-  number2 tt = (number2)omAlloc(sizeof(struct snumber2));
-  tt->n = t;
-  tt->cf = o->basecoeffs();
-  result->rtyp = NUMBER2_CMD;
-  result->data = tt;
+  returnNumber(result, t, o->basecoeffs());
   return FALSE;
 }
 
 static BOOLEAN eltNorm(leftv result, leftv arg)
 {
-  assume (arg->Typ()==NUMBER2_CMD);
-  number2 a = (number2) arg->Data();
+  number2 a;
+  if (!checkArgumentIsNumber2(arg, NULL, &a)) {
+    WerrorS("EltNorm(elt)");
+    return TRUE;
+  }
   coeffs  c = a->cf;
+  if (getCoeffType(c) != nforder_type) {
+    WerrorS("EltNorm(elt in order)");
+    return TRUE;
+  }
   bigintmat * aa = (bigintmat*)a->n;
-  assume (c->type == nforder_type);
   nforder * o = (nforder*)c->data;
   number t = o->elNorm(aa);
-  number2 tt = (number2)omAlloc(sizeof(struct snumber2));
-  tt->n = t;
-  tt->cf = o->basecoeffs();
-  result->rtyp = NUMBER2_CMD;
-  result->data = tt;
+  returnNumber(result, t, o->basecoeffs());
   return FALSE;
 }
 

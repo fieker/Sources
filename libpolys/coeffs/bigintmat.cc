@@ -33,6 +33,39 @@ bigintmat * bigintmat::transpose()
   return t;
 }
 
+void bigintmat::inpTranspose()
+{
+  int n = row, 
+      m = col,
+      nm = n<m?n : m; // the min, describing the square part of the matrix
+  //CF: this is not optimal, but so far, it seems to work
+
+#define swap(_i, _j)        \
+  int __i = (_i), __j=(_j); \
+  number c = v[__i];        \
+  v[__i] = v[__j];          \
+  v[__j] = c                \
+
+  for (int i=0; i< nm; i++)
+    for (int j=i+1; j< nm; j++) {
+      swap(i*m+j, j*n+i);
+    }
+  if (n<m) 
+    for (int i=nm; i<m; i++)
+      for(int j=0; j<n; j++) {
+        swap(j*n+i, i*m+j);
+      }
+  if (n>m) 
+    for (int i=nm; i<n; i++)
+      for(int j=0; j<m; j++) {
+        swap(i*m+j, j*n+i);
+      }
+#undef swap
+  row = m;
+  col = n;
+}
+
+
 // Beginnt bei [0]
 void bigintmat::set(int i, number n, const coeffs C)
 {
@@ -738,6 +771,18 @@ void bigintmat::getcol(int j, bigintmat *a)
     n_Delete(&t1, basecoeffs());
   }
 }
+
+void bigintmat::getColRange(int j, int no, bigintmat *a)
+{
+  number t1;
+  for(int ii=0; ii< no; ii++) {
+    for (int i=1; i<=row;i++) {
+      t1 = view(i, ii+j);
+      a->set(i, ii+1, t1);
+    }
+  }
+}
+
 
 void bigintmat::getrow(int i, bigintmat *a)
 {

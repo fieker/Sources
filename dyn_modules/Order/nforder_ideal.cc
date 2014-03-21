@@ -244,4 +244,89 @@ nforder_ideal * nf_idMult(nforder_ideal *A, nforder_ideal *B)
   delete t1;
   return D;
 }
+ 
+nforder_ideal* nf_idMult(nforder_ideal * A, number b)
+{
+  nforder * O = (nforder*) A->order()->data;
+  coeffs C = O->basecoeffs();
+  bigintmat * r = O->elRepMat((bigintmat*) b);
+  bigintmat * s = bimMult(r, A->viewBasis());
+  delete r;
+  if (A->isFractional()) {
+    number d = n_Copy(A->viewBasisDen(), C);
+    s->simplifyContentDen(&d);
+    nforder_ideal * res = new nforder_ideal(s, A->order());
+    res->setBasisDenTransfer(d);
+    return res;
+  } else {
+    return new nforder_ideal(s, A->order());
+  }
+}
 
+nforder_ideal * nf_idInit(int i, coeffs O)
+{
+  nforder *ord = (nforder*) O->data;
+  coeffs C = ord->basecoeffs();
+  bigintmat * r = new bigintmat(ord->getDim(), ord->getDim(), C);
+  r->one();
+  number I = n_Init(i, C);
+  r->skalmult(I, C);
+  nforder_ideal * A = new nforder_ideal(r, O);
+  delete r;
+  number n;
+  n_Power(I, ord->getDim(), &n, C);
+  A->setNormTransfer(n, n_Init(1, C));
+  A->setMinTransfer(I, n_Init(1, C));
+  return A;
+}
+
+nforder_ideal * nf_idInit(number I, coeffs O)
+{
+  nforder *ord = (nforder*) O->data;
+  bigintmat * r = ord->elRepMat((bigintmat*)I);
+  nforder_ideal * A = new nforder_ideal(r, O);
+  delete r;
+  return A;
+}
+
+nforder_ideal* nf_idMult(nforder_ideal * A, int b)
+{
+  nforder * O = (nforder*) A->order()->data;
+  coeffs C = O->basecoeffs();
+  bigintmat * s = new bigintmat(A->viewBasis());
+  number bb = n_Init(b, C);
+  s->skalmult(bb, C);
+  n_Delete(&bb, C);
+
+  if (A->isFractional()) {
+    number d = n_Copy(A->viewBasisDen(), C);
+    s->simplifyContentDen(&d);
+    nforder_ideal * res = new nforder_ideal(s, A->order());
+    res->setBasisDenTransfer(d);
+    return res;
+  } else {
+    return new nforder_ideal(s, A->order());
+  }
+}
+
+nforder_ideal* nf_idPower(nforder_ideal* A, int i)
+{
+  if (i==0) {
+    return nf_idInit(1, A->order());
+  } else if (i==1) {
+    return new nforder_ideal(A, 1);
+  } else if (i<0) {
+    Werror("not done yet");
+  } else {
+    nforder_ideal *B = nf_idPower(A, i/2);
+    nforder_ideal *res = nf_idMult(B, B);
+    delete B;
+    if (i&1) {
+      nforder_ideal * C = nf_idMult(res, B);
+      delete res;
+      return C;
+    } else {
+      return res;
+    }
+  }
+}

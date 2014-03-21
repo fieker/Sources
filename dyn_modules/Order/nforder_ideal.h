@@ -61,6 +61,11 @@ public:
 
 nforder_ideal* nf_idAdd(nforder_ideal *a, nforder_ideal *b);
 nforder_ideal* nf_idMult(nforder_ideal *a, nforder_ideal *b);
+nforder_ideal* nf_idMult(nforder_ideal *a, number b);
+nforder_ideal* nf_idMult(nforder_ideal *a, int b);
+nforder_ideal* nf_idPower(nforder_ideal *a, int b);
+nforder_ideal* nf_idInit(int, coeffs);
+nforder_ideal* nf_idInit(number, coeffs);
 nforder_ideal* nf_idDiv(nforder_ideal *a, nforder_ideal *b);
 nforder_ideal* nf_idMeet(nforder_ideal *a, nforder_ideal *b);
 #endif

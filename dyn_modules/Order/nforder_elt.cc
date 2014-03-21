@@ -114,8 +114,18 @@ static number EltExactDiv(number a, number b, const coeffs r)
 static number  EltInit(long i,const coeffs r)
 
 {
-  Print("%s called\n", __func__);
-  return NULL;
+  nforder * O = (nforder*) r->data;
+  if (!O) return NULL; //during init, this seems to be called with O==NULL
+  coeffs C = O->basecoeffs();
+  bigintmat * b = new bigintmat(1, O->getDim(), C);
+  if (O->oneIsOne()) {
+    basis_elt(b, 1);
+    number I = n_Init(i, C);
+    b->skalmult(I, C);
+    n_Delete(&I, C);
+    return (number) b;
+  } else
+    return NULL;
 }
 
    /// init with a GMP integer
@@ -222,7 +232,6 @@ static void EltDelete(number * a, const coeffs r)
 
 BOOLEAN n_nfOrderInit(coeffs r,  void * parameter)
 {
-  puts("nfOrderInit called");
   assume( getCoeffType(r) == nforder_type );
   r->nCoeffIsEqual=order_cmp;
   r->cfKillChar = KillChar;

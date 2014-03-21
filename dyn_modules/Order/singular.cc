@@ -61,57 +61,6 @@ static void nforder_ideal_destroy(blackbox * /*b*/, void *d)
   }
 }
 
-static BOOLEAN nforder_ideal_Op2(int op,leftv l, leftv r1, leftv r2)
-{
-  Print("Types are %d %d\n", r1->Typ(), r2->Typ());
-  switch (op) {
-    case '+':
-      {
-      nforder_ideal *I = (nforder_ideal*) r1->Data(),
-                    *J = (nforder_ideal*) r2->Data(),
-                    *H = nf_idAdd(I, J);
-      l->rtyp = nforder_type_id;
-      l->data = (void*)H;
-      return FALSE;
-      }
-    case '*':
-      {
-      nforder_ideal *I = (nforder_ideal*) r1->Data(),
-                    *J = (nforder_ideal*) r2->Data(),
-                    *H = nf_idMult(I, J);
-      l->rtyp = nforder_type_id;
-      l->data = (void*)H;
-      return FALSE;
-      }
-    default:
-      return WrongOp("not implemented yet", op, r1);
-  }
-  return TRUE;
-}
-static BOOLEAN nforder_ideal_bb_setup()
-{
-  blackbox *b=(blackbox*)omAlloc0(sizeof(blackbox));
-  // all undefined entries will be set to default in setBlackboxStuff
-  // the default Print is quite useful,
-  // all other are simply error messages
-  b->blackbox_destroy=nforder_ideal_destroy;
-  b->blackbox_String=nforder_ideal_String;
-  //b->blackbox_Print=blackbox_default_Print;
-  b->blackbox_Init=nforder_ideal_Init;
-  b->blackbox_Copy=nforder_ideal_Copy;
-  b->blackbox_Assign=nforder_ideal_Assign;
-  //b->blackbox_Op1=blackbox_default_Op1;
-  b->blackbox_Op2=nforder_ideal_Op2;
-  //b->blackbox_Op3=blackbox_default_Op3;
-  //b->blackbox_OpM=blackbox_default_OpM;
-  nforder_type_id = setBlackboxStuff(b,"NFOrderIdeal");
-  Print("setup: created a blackbox type [%d] '%s'",nforder_type_id, getBlackboxName(nforder_type_id));
-  PrintLn();
-  return FALSE; // ok, TRUE = error!
-}
-
-// module stuff: ------------------------------------------------------------
-
 BOOLEAN checkArgumentIsOrder(leftv arg, nforder * cmp, nforder ** result)
 {
   if (arg->Typ() != CRING_CMD) return FALSE;
@@ -141,6 +90,126 @@ BOOLEAN checkArgumentIsNumber2(leftv arg, coeffs r, number2 * result)
   return TRUE;
 }
 
+
+BOOLEAN checkArgumentIsNFOrderIdeal(leftv arg, coeffs r, nforder_ideal ** result)
+{
+  if (arg->Typ() != nforder_type_id) return FALSE;
+  *result = (nforder_ideal *) arg->Data();
+  if (r && (*result)->order() != r) return FALSE;
+  return TRUE;
+}
+
+BOOLEAN checkArgumentIsInt(leftv arg, int* result)
+{
+  if (arg->Typ() != INT_CMD) return FALSE;
+  *result = (long) arg->Data();
+  return TRUE;
+}
+
+BOOLEAN checkArgumentIsBigint(leftv arg, number* result)
+{
+  switch (arg->Typ()) {
+    case BIGINT_CMD:
+      *result = (number)arg->Data();
+      return TRUE;
+      break;
+    case NUMBER_CMD:
+      if (currRing->cf == coeffs_BIGINT &&
+          getCoeffType(coeffs_BIGINT) == n_Z) {
+        *result = (number)arg->Data();
+        return TRUE;
+      } else
+        return FALSE;
+      break;
+    case NUMBER2_CMD: 
+      {
+        number2 n = (number2)arg->Data();
+        if (getCoeffType(n->cf) == n_Z) {
+          *result = n->n;
+          return TRUE;
+        } 
+        return FALSE;
+        break;
+      }
+    default:
+      return FALSE;
+  }
+}
+
+static BOOLEAN nforder_ideal_Op2(int op,leftv l, leftv r1, leftv r2)
+{
+  Print("Types are %d %d\n", r1->Typ(), r2->Typ());
+  number2 e;
+  int f;
+  nforder_ideal *I, *J, *H;
+  switch (op) {
+    case '+':
+      {
+      if (!checkArgumentIsNFOrderIdeal(r1, NULL, &I))
+        return TRUE;
+      if (!checkArgumentIsNFOrderIdeal(r2, I->order(), &J))
+        return TRUE;
+      H = nf_idAdd(I, J);
+      break;
+      }
+    case '*':
+      {
+      if (!checkArgumentIsNFOrderIdeal(r1, NULL, &I)) {
+        leftv r = r1;
+        r1 = r2;
+        r2 = r; //at least ONE argument has to be an ideal
+      }
+      if (!checkArgumentIsNFOrderIdeal(r1, NULL, &I))
+        return TRUE;
+      if (checkArgumentIsNFOrderIdeal(r2, I->order(), &J)) {
+        H = nf_idMult(I, J);
+      } else if (checkArgumentIsNumber2(r2, I->order(), &e)) {
+        H = nf_idMult(I, e->n);
+      } else if (checkArgumentIsInt(r2, &f)) {
+        H = nf_idMult(I, f);
+      } else
+        return TRUE;
+      break;
+      }
+    case '^':
+      {
+        if (!checkArgumentIsNFOrderIdeal(r1, NULL, &I))
+          return TRUE;
+        if (!checkArgumentIsInt(r2, &f))
+          return TRUE;
+        H = nf_idPower(I, f);
+        break;
+      }
+    default:
+      return WrongOp("not implemented yet", op, r1);
+  }
+  l->rtyp = nforder_type_id;
+  l->data = (void*)H;
+  return FALSE;
+}
+static BOOLEAN nforder_ideal_bb_setup()
+{
+  blackbox *b=(blackbox*)omAlloc0(sizeof(blackbox));
+  // all undefined entries will be set to default in setBlackboxStuff
+  // the default Print is quite useful,
+  // all other are simply error messages
+  b->blackbox_destroy=nforder_ideal_destroy;
+  b->blackbox_String=nforder_ideal_String;
+  //b->blackbox_Print=blackbox_default_Print;
+  b->blackbox_Init=nforder_ideal_Init;
+  b->blackbox_Copy=nforder_ideal_Copy;
+  b->blackbox_Assign=nforder_ideal_Assign;
+  //b->blackbox_Op1=blackbox_default_Op1;
+  b->blackbox_Op2=nforder_ideal_Op2;
+  //b->blackbox_Op3=blackbox_default_Op3;
+  //b->blackbox_OpM=blackbox_default_OpM;
+  nforder_type_id = setBlackboxStuff(b,"NFOrderIdeal");
+  Print("setup: created a blackbox type [%d] '%s'",nforder_type_id, getBlackboxName(nforder_type_id));
+  PrintLn();
+  return FALSE; // ok, TRUE = error!
+}
+
+// module stuff: ------------------------------------------------------------
 
 BOOLEAN checkBigintmatDim(bigintmat * b, int r, int c)
 {

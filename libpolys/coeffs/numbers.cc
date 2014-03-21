@@ -80,6 +80,7 @@ void ndPower(number a, int i, number * res, const coeffs r)
     n_Delete(&b, r);
   } else {
     ndPower(a, i/2, res, r);
+    n_InpMult(*res, *res, r);
     if (i&1) {
       n_InpMult(*res, a, r);
     } 

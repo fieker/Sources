@@ -86,7 +86,6 @@ SOURCES = \
    links/pipeLink.cc\
    scanner.cc\
    sdb.cc\
-   links/s_buff.cc\
    links/silink.cc\
    links/sing_dbm.cc\
    sing_win.cc\
@@ -142,13 +141,11 @@ SingularHEADERS = \
    run.h \
    sdb.h \
    links/silink.h \
-   links/s_buff.h \
    links/sing_dbm.h \
    sing_win.h \
    links/slInit.h \
    links/ssiLink.h \
    links/simpleipc.h \
-   si_signals.h \
    stype.h \
    subexpr.h \
    table.h \

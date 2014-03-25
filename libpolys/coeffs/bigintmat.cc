@@ -1264,6 +1264,18 @@ void bigintmat::zero() {
   n_Delete(&tmp,basecoeffs());
 }
 
+int bigintmat::isZero() {
+  number tmp = n_Init(0, basecoeffs());
+  for (int i=1; i<=row; i++) {
+    for (int j=1; j<=col; j++) {
+      if (!n_IsZero(view(i,j), basecoeffs()))
+        return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+
 
 //used in the det function. No idea what it does.
 //looks like it return the submatrix where the i-th row

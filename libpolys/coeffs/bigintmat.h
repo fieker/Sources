@@ -216,8 +216,9 @@ class bigintmat
     void splitrow(bigintmat *a, int i); // ... Zeilen ...
     bool copy(bigintmat *b); // Kopiert Einträge von b auf Bigintmat
     void one(); // Macht Matrix (Falls quadratisch) zu Einheitsmatrix
-    int isOne(); // id matrix is identity
+    int isOne(); // is matrix is identity
     void zero(); // Setzt alle Einträge auf 0
+    int isZero(); 
     bigintmat *elim(int i, int j); // Liefert Streichungsmatrix (i-te Zeile und j-te Spalte gestrichen) zurück
     number pseudoinv(bigintmat *a); // Speichert in Matrix a die Pseudoinverse, liefert den Nenner zurück
     number trace(); // the trace ....

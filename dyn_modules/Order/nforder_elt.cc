@@ -24,11 +24,10 @@ static void EltWrite(number &a, const coeffs r)
   bigintmat * b = (bigintmat*)a;
   if (a) {
     bigintmat * c = b->transpose();
-    char * m = c->String();
-    ::Print("%s^t\n", m);
-    delete c;
+    c->Write();
+    StringAppendS("^t ");
   } else {
-    Print("(Null)\n");
+    StringAppendS("(Null)\n");
   }
 }
 
@@ -117,7 +116,7 @@ static number  EltInit(long i,const coeffs r)
   nforder * O = (nforder*) r->data;
   if (!O) return NULL; //during init, this seems to be called with O==NULL
   coeffs C = O->basecoeffs();
-  bigintmat * b = new bigintmat(1, O->getDim(), C);
+  bigintmat * b = new bigintmat(O->getDim(), 1, C);
   if (O->oneIsOne()) {
     basis_elt(b, 1);
     number I = n_Init(i, C);
@@ -177,7 +176,7 @@ static number  EltCopy(number a, const coeffs r)
 
 static const char * EltRead(const char * s, number * a, const coeffs r)
 {
-  Print("%s called with ->%s-<\n", __func__, s);
+//  Print("%s called with ->%s-<\n", __func__, s);
   return s;
 }
 
@@ -193,28 +192,22 @@ static BOOLEAN EltGreater(number a,number b, const coeffs r)
 }
 static BOOLEAN EltIsOne(number a, const coeffs r)
 {
-  Print("%s called\n", __func__, a, r);
+//  Print("%s called\n", __func__, a, r);
   return 0;
 }
 static BOOLEAN EltIsMOne(number a, const coeffs r)
 {
-  Print("%s called\n", __func__, a, r);
+//  Print("%s called\n", __func__, a, r);
   return 0;
 }
 static BOOLEAN EltGreaterZero(number a, const coeffs r)
 {
-  Print("%s called\n", __func__, a, r);
-  return 0;
+//  Print("%s called\n", __func__, a, r);
+  return 1;
 }
 static BOOLEAN EltIsZero(number a, const coeffs r)
 {
-  Print("%s called\n", __func__, a, r);
-  return 0;
-}
-static void  EltPowerSmall(number a, int i, number * result, const coeffs r)
-{
-  Print("%s called\n", __func__, a, i, result, r);
-  result = NULL;
+  return (a==NULL) || ((bigintmat*)a)->isZero();
 }
 
 static nMapFunc EltSetMap(const coeffs src, const coeffs dst)
@@ -226,6 +219,7 @@ static nMapFunc EltSetMap(const coeffs src, const coeffs dst)
 static void EltDelete(number * a, const coeffs r)
 {
 //  Print("Deleting %lx\n%s\n", *a, (((bigintmat*)(*a))->String()));
+  
   delete (bigintmat*)(*a);
   *a = NULL;
 }
@@ -264,6 +258,8 @@ BOOLEAN n_nfOrderInit(coeffs r,  void * parameter)
   r->cfGreaterZero = EltGreaterZero;
   r->cfDelete = EltDelete;
   r->cfSetMap = EltSetMap;
+  if (parameter)
+    r->nNULL = EltInit(0, r);
 #ifdef LDEBUG
   r->cfDBTest = EltDBTest;
 #endif

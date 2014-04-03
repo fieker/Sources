@@ -28,27 +28,27 @@
 #include <polys/prCopy.h>
 #include <kernel/ideals.h>
 #include <polys/matpol.h>
-#include <kernel/kstd1.h>
+#include <kernel/GBEngine/kstd1.h>
 #include <polys/monomials/ring.h>
 #include <Singular/subexpr.h>
 #include <polys/monomials/maps.h>
-#include <kernel/syz.h>
+#include <kernel/GBEngine/syz.h>
 #include <coeffs/numbers.h>
 //#include <polys/ext_fields/longalg.h>
 #include <Singular/lists.h>
 #include <Singular/attrib.h>
 #include <Singular/ipconv.h>
 #include <Singular/links/silink.h>
-#include <kernel/stairc.h>
+#include <kernel/GBEngine/stairc.h>
 #include <polys/weight.h>
-#include <kernel/semic.h>
-#include <kernel/splist.h>
-#include <kernel/spectrum.h>
+#include <kernel/spectrum/semic.h>
+#include <kernel/spectrum/splist.h>
+#include <kernel/spectrum/spectrum.h>
 ////// #include <coeffs/gnumpfl.h>
 //#include <kernel/mpr_base.h>
 ////// #include <coeffs/ffields.h>
 #include <polys/clapsing.h>
-#include <kernel/hutil.h>
+#include <kernel/combinatorics/hutil.h>
 #include <polys/monomials/ring.h>
 #include <Singular/ipshell.h>
 #include <polys/ext_fields/algext.h>
@@ -69,7 +69,7 @@
 #define FAST_MAP
 
 #ifdef FAST_MAP
-#include <kernel/fast_maps.h>
+#include <kernel/maps/fast_maps.h>
 #endif
 
 leftv iiCurrArgs=NULL;

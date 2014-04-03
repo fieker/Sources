@@ -12,6 +12,7 @@
 #endif /* HAVE_CONFIG_H */
 #include <kernel/mod2.h>
 #include <misc/auxiliary.h>
+#include <misc/sirandom.h>
 
 #include <factory/factory.h>
 
@@ -66,22 +67,24 @@
 
 #include <kernel/fast_mult.h>
 #include <kernel/digitech.h>
-#include <kernel/stairc.h>
+#include <kernel/GBEngine/stairc.h>
 #include <kernel/febase.h>
 #include <kernel/ideals.h>
-#include <kernel/kstd1.h>
-#include <kernel/syz.h>
-#include <kernel/kutil.h>
+#include <kernel/GBEngine/kstd1.h>
+#include <kernel/GBEngine/syz.h>
+#include <kernel/GBEngine/kutil.h>
 
-#include <kernel/shiftgb.h>
-#include <kernel/linearAlgebra.h>
+#include <kernel/GBEngine/shiftgb.h>
+#include <kernel/linear_algebra/linearAlgebra.h>
 
-#include <kernel/hutil.h>
+#include <kernel/combinatorics/hutil.h>
 
 // for tests of t-rep-GB
-#include <kernel/tgb.h>
+#include <kernel/GBEngine/tgb.h>
 
 #include <kernel/minpoly.h>
+
+#include <numeric/mpr_base.h>
 
 #include "tok.h"
 #include "ipid.h"
@@ -105,11 +108,11 @@
 
 
 #ifdef HAVE_RINGS
-#include <kernel/ringgb.h>
+#include <kernel/GBEngine/ringgb.h>
 #endif
 
 #ifdef HAVE_F5
-#include <kernel/f5gb.h>
+#include <kernel/GBEngine/f5gb.h>
 #endif
 
 #ifdef HAVE_WALK
@@ -118,17 +121,17 @@
 
 
 #ifdef HAVE_SPECTRUM
-#include <kernel/spectrum.h>
+#include <kernel/spectrum/spectrum.h>
 #endif
 
 #ifdef HAVE_PLURAL
 #include <polys/nc/nc.h>
 #include <polys/nc/ncSAMult.h> // for CMultiplier etc classes
 #include <polys/nc/sca.h>
-#include <kernel/nc.h>
+#include <kernel/GBEngine/nc.h>
 #include "ipconv.h"
 #ifdef HAVE_RATGRING
-#include <kernel/ratgring.h>
+#include <kernel/GBEngine/ratgring.h>
 #endif
 #endif
 
@@ -147,7 +150,7 @@
 #endif
 
 #include <polys/clapconv.h>
-#include <kernel/kstdfac.h>
+#include <kernel/GBEngine/kstdfac.h>
 
 #include <polys/clapsing.h>
 
@@ -675,7 +678,9 @@ BOOLEAN jjSYSTEM(leftv res, leftv args)
           return TRUE;
         }
         res->rtyp=INT_CMD;
-        res->data=(void*)getGMPFloatDigits();
+        res->data=(void*)(long)gmp_output_digits;
+	//if (gmp_output_digits!=getGMPFloatDigits())
+	//{ Print("%d, %d\n",getGMPFloatDigits(),gmp_output_digits);}
         return FALSE;
       }
   /*==================== mpz_t loader ======================*/
@@ -2320,7 +2325,7 @@ BOOLEAN jjSYSTEM(leftv res, leftv args)
 #  endif
 #  include <polys/mod_raw.h>
 #  include <polys/monomials/ring.h>
-#  include <kernel/shiftgb.h>
+#  include <kernel/GBEngine/shiftgb.h>
 
 static BOOLEAN jjEXTENDED_SYSTEM(leftv res, leftv h)
 {

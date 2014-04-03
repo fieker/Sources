@@ -25,6 +25,7 @@
 #endif
 
 #include <misc/options.h>
+#include <misc/sirandom.h>
 #include <misc/intvec.h>
 
 #include <polys/prCopy.h>
@@ -37,24 +38,24 @@
 #include <polys/ext_fields/transext.h>
 #  include <polys/clapsing.h>
 
-#include <kernel/stairc.h>
+#include <kernel/GBEngine/stairc.h>
 #include <kernel/mod2.h>
 #include <kernel/polys.h>
 #include <kernel/febase.h>
 #include <kernel/ideals.h>
-#include <kernel/kstd1.h>
+#include <kernel/GBEngine/kstd1.h>
 #include <kernel/timer.h>
 #include <kernel/preimage.h>
-#include <kernel/units.h>
-#include <kernel/GMPrat.h>
-#include <kernel/tgb.h>
-#include <kernel/walkProc.h>
-#include <kernel/linearAlgebra.h>
-#include <kernel/syz.h>
+#include <kernel/GBEngine/units.h>
+#include <kernel/spectrum/GMPrat.h>
+#include <kernel/GBEngine/tgb.h>
+#include <kernel/groebner_walk/walkProc.h>
+#include <kernel/linear_algebra/linearAlgebra.h>
+#include <kernel/GBEngine/syz.h>
 #include <kernel/timer.h>
 
 #include <kernel/interpolation.h>
-#  include <kernel/kstdfac.h>
+#  include <kernel/GBEngine/kstdfac.h>
 #  include <kernel/fglm/fglm.h>
 
 #include <Singular/tok.h>
@@ -68,7 +69,7 @@
 #include <Singular/ipprint.h>
 #include <Singular/attrib.h>
 #include <Singular/links/silink.h>
-#include <kernel/MinorInterface.h>
+#include <kernel/linear_algebra/MinorInterface.h>
 #include <Singular/misc_ip.h>
 #include <Singular/linearAlgebra_ip.h>
 
@@ -98,8 +99,8 @@ ring rCompose(const lists  L, const BOOLEAN check_comp=TRUE);
 // defaults for all commands: NO_PLURAL | NO_RING | ALLOW_ZERODIVISOR
 
 #ifdef HAVE_PLURAL
-  #include <kernel/ratgring.h>
-  #include <kernel/nc.h>
+  #include <kernel/GBEngine/ratgring.h>
+  #include <kernel/GBEngine/nc.h>
   #include <polys/nc/nc.h>
   #include <polys/nc/sca.h>
   #define ALLOW_PLURAL     1
@@ -2527,6 +2528,7 @@ static BOOLEAN jjINDEPSET2(leftv res, leftv u, leftv v)
 static BOOLEAN jjINTERSECT(leftv res, leftv u, leftv v)
 {
   res->data=(char *)idSect((ideal)u->Data(),(ideal)v->Data());
+  if (TEST_OPT_RETURN_SB) setFlag(res,FLAG_STD);
   return FALSE;
 }
 static BOOLEAN jjINTERPOLATION (leftv res, leftv l, leftv v)
@@ -2670,6 +2672,7 @@ static BOOLEAN jjMODULO(leftv res, leftv u, leftv v)
     atSet(res,omStrDup("isHomog"),w_u,INTVEC_CMD);
   }
   delete w_v;
+  if (TEST_OPT_RETURN_SB) setFlag(res,FLAG_STD);
   return FALSE;
 }
 static BOOLEAN jjMOD_BI(leftv res, leftv u, leftv v)
@@ -5029,6 +5032,7 @@ static BOOLEAN jjSYZYGY(leftv res, leftv v)
   intvec *w=NULL;
   res->data = (char *)idSyzygies((ideal)v->Data(),testHomog,&w);
   if (w!=NULL) delete w;
+  if (TEST_OPT_RETURN_SB) setFlag(res,FLAG_STD);
   return FALSE;
 }
 #else
@@ -6351,6 +6355,23 @@ static BOOLEAN jjPREIMAGE(leftv res, leftv u, leftv v, leftv w)
   if (kernel_cmd) idDelete(&image);
   return (res->data==NULL/* is of type ideal, should not be NULL*/);
 }
+static BOOLEAN jjRANDOM_CR(leftv res, leftv u, leftv v, leftv w)
+{
+  coeffs cf=(coeffs)w->Data();
+  if ((cf==NULL) ||(cf->cfRandom==NULL))
+  {
+    Werror("no random function defined for coeff %d",cf->type);
+    return TRUE;
+  }
+  else
+  {
+    number2 n=(number2)omAlloc(sizeof(*n));
+    n->n=cf->cfRandom((number)u->Data(),(number)v->Data(),cf);
+    n->cf=cf; cf->ref++;
+    res->data=(void*)n;
+    return FALSE;
+  }
+}
 static BOOLEAN jjRANDOM_Im(leftv res, leftv u, leftv v, leftv w)
 {
   int di, k;
@@ -7534,7 +7555,7 @@ extern "C"
 static BOOLEAN jjFactModD_M(leftv res, leftv v)
 {
   /* compute two factors of h(x,y) modulo x^(d+1) in K[[x]][y],
-     see a detailed documentation in /kernel/linearAlgebra.h
+     see a detailed documentation in /kernel/linear_algebra/linearAlgebra.h
 
      valid argument lists:
      - (poly h, int d),

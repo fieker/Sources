@@ -75,6 +75,7 @@ bug_hilbstd
 bug_homog
 bug_idlen
 bug_interpol
+bug_misc
 bug_mres
 bug_napMultT
 bug_newstruct
@@ -209,6 +210,7 @@ Katsura_4_32003_lp_slimgb
 Katsura_5_32003_lp_slimgb
 Katsura_6_32003_lp_slimgb
 minor_s
+modular_s
 modstd
 modulo_s
 monodromy_s

@@ -66,44 +66,44 @@ char *iiArithGetCmd(int nPos){return NULL; }
 
 
 // HEADERS:
-#include <kernel/hutil.h>
-#include <kernel/stairc.h>
+#include <kernel/combinatorics/hutil.h>
+#include <kernel/GBEngine/stairc.h>
 #include <kernel/ideals.h>
-#include <kernel/syz.h>
-#include <kernel/fast_maps.h>
+#include <kernel/GBEngine/syz.h>
+#include <kernel/maps/fast_maps.h>
 #include <kernel/febase.h>
-#include <kernel/walkProc.h>
-#include <kernel/walkMain.h>
-#include <kernel/walkSupport.h>
-#include <kernel/khstd.h>
+#include <kernel/groebner_walk/walkProc.h>
+#include <kernel/groebner_walk/walkMain.h>
+#include <kernel/groebner_walk/walkSupport.h>
+#include <kernel/GBEngine/khstd.h>
 /// #include <kernel/sparsmat.h> // TODO: install polys/this!
 //+
 
 #include <kernel/fglm/fglm.h>
-#include <kernel/kstd1.h>
+#include <kernel/GBEngine/kstd1.h>
 #include <kernel/fglm/fglmgauss.h>
 #include <kernel/fglm/fglmvec.h>
-#include <kernel/kstdfac.h>
-#include <kernel/kmatrix.h>
-#include <kernel/GMPrat.h>
-#include <kernel/multicnt.h>
-#include <kernel/npolygon.h>
-#include <kernel/semic.h>
-#include <kernel/spectrum.h>
-#include <kernel/splist.h>
-#include <kernel/multicnt.h>
-#include <kernel/eigenval.h>
-#include <kernel/units.h>
-#include <kernel/ratgring.h>
-#include <kernel/shiftgb.h>
+#include <kernel/GBEngine/kstdfac.h>
+#include <kernel/spectrum/kmatrix.h>
+#include <kernel/spectrum/GMPrat.h>
+#include <kernel/spectrum/multicnt.h>
+#include <kernel/spectrum/npolygon.h>
+#include <kernel/spectrum/semic.h>
+#include <kernel/spectrum/spectrum.h>
+#include <kernel/spectrum/splist.h>
+#include <kernel/spectrum/multicnt.h>
+#include <kernel/linear_algebra/eigenval.h>
+#include <kernel/GBEngine/units.h>
+#include <kernel/GBEngine/ratgring.h>
+#include <kernel/GBEngine/shiftgb.h>
 
 
-#include <kernel/kutil.h>
+#include <kernel/GBEngine/kutil.h>
 
 // #include "CCRing.h" // Too old!
 #include <kernel/digitech.h>
-#include <kernel/eigenval.h>
-#include <kernel/fast_maps.h>
+#include <kernel/linear_algebra/eigenval.h>
+#include <kernel/maps/fast_maps.h>
 #include <kernel/fast_mult.h>
 #include <kernel/febase.h>
 
@@ -112,10 +112,10 @@ char *iiArithGetCmd(int nPos){return NULL; }
 #include <kernel/fglm/fglmvec.h>
 
 ////////#include <kernel/F5cData.h>
-#include <kernel/f5c.h>
-#include <kernel/f5data.h>
-#include <kernel/f5gb.h>
-#include <kernel/f5lists.h>
+#include <kernel/GBEngine/f5c.h>
+#include <kernel/GBEngine/f5data.h>
+#include <kernel/GBEngine/f5gb.h>
+#include <kernel/GBEngine/f5lists.h>
 ////////#include <kernel/F5cLists.h>
 
 
@@ -124,54 +124,54 @@ char *iiArithGetCmd(int nPos){return NULL; }
 
 #include <kernel/ideals.h>
 
-#include <kernel/kmatrix.h>
-#include <kernel/kstd1.h>
-#include <kernel/kstdfac.h>
-#include <kernel/khstd.h>
+#include <kernel/spectrum/kmatrix.h>
+#include <kernel/GBEngine/kstd1.h>
+#include <kernel/GBEngine/kstdfac.h>
+#include <kernel/GBEngine/khstd.h>
 
-#include <kernel/linearAlgebra.h>
+#include <kernel/linear_algebra/linearAlgebra.h>
 
 
 
 // #include <kernel/lplist.h> // Too old!
-#include <kernel/multicnt.h>
-#include <kernel/npolygon.h>
+#include <kernel/spectrum/multicnt.h>
+#include <kernel/spectrum/npolygon.h>
 // #include "Number.h" // Too old?
 // #include "Poly.h" // Too old?
 // #include "PowerSeries.h" // Too old?
 
 #include <kernel/preimage.h>
 
-#include <kernel/nc.h>
+#include <kernel/GBEngine/nc.h>
 
-#include <kernel/ratgring.h>
-#include <kernel/ringgb.h>
-#include <kernel/semic.h>
-#include <kernel/shiftgb.h>
-#include <kernel/spectrum.h>
-#include <kernel/splist.h>
-#include <kernel/stairc.h>
+#include <kernel/GBEngine/ratgring.h>
+#include <kernel/GBEngine/ringgb.h>
+#include <kernel/spectrum/semic.h>
+#include <kernel/GBEngine/shiftgb.h>
+#include <kernel/spectrum/spectrum.h>
+#include <kernel/spectrum/splist.h>
+#include <kernel/GBEngine/stairc.h>
 #include <kernel/structs.h>
-#include <kernel/syz.h>
+#include <kernel/GBEngine/syz.h>
 // #include <kernel/testpoly.h> // Too old?
 
-#include <kernel/tgbgauss.h>
-#include <kernel/tgb.h>
+#include <kernel/GBEngine/tgbgauss.h>
+#include <kernel/GBEngine/tgb.h>
 
 #include <kernel/timer.h>
 
-#include <kernel/units.h>
-#include <kernel/walkMain.h>
-#include <kernel/walkProc.h>
-#include <kernel/walkSupport.h>
+#include <kernel/GBEngine/units.h>
+#include <kernel/groebner_walk/walkMain.h>
+#include <kernel/groebner_walk/walkProc.h>
+#include <kernel/groebner_walk/walkSupport.h>
 
-#include <kernel/janet.h>
+#include <kernel/GBEngine/janet.h>
 #include <kernel/interpolation.h>
 #include <kernel/minpoly.h>
 
-#include <kernel/Minor.h>
-#include <kernel/MinorInterface.h>
-#include <kernel/MinorProcessor.h>
+#include <kernel/linear_algebra/Minor.h>
+#include <kernel/linear_algebra/MinorInterface.h>
+#include <kernel/linear_algebra/MinorProcessor.h>
 #include <kernel/Cache.h>
 #include <kernel/CacheImplementation.h>
 

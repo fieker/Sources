@@ -578,29 +578,22 @@ number multring(bigintmat *nbase, nforder *o, number p) {
   
   lon->skaldiv(divi);
 
-  number p2;
-  p2 = n_Mult(p, p, o->basecoeffs());
-  //TODO: use Howel-form and proper lift to reduce modulus to p.
-  //can't use 2*p since the normlisation modulu units works different
-  //if p was odd.
+  bigintmat * red;
   if (1) {
-    bigintmat * cmp = lon->modhnf(p2, o->basecoeffs());
-    delete lon;
-    lon = cmp;
+    bigintmat * cmp = lon->modhnf(p, o->basecoeffs());
+    red = cmp;
   } else {
     lon->hnf();
+    red = new bigintmat(n, n, o->basecoeffs());
+    lon->getColRange((n-1)*n+1, n, red);
   }
-
-  n_Delete(&p2, o->basecoeffs());
-  bigintmat *red = new bigintmat(n, n, o->basecoeffs());
-  lon->getColRange((n-1)*n+1, n, red);
+  delete lon;
   red->inpTranspose();
   
   number divisor = red->pseudoinv(nbase);
   nbase->hnf();
   
   delete inv;
-  delete lon;
   delete mm;
   delete temp;
   delete red;

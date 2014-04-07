@@ -139,21 +139,16 @@ nforder_ideal * nf_idAdd(nforder_ideal *A, nforder_ideal *B)
   if (!(modB = B->viewMin())) {
     modB = B->viewNorm();
   }
+  bigintmat *t2;
   if (modA && modB) {
     number mod = n_Gcd(modA, modB, C);
-    number mm = n_Mult(mod, mod, C);
-    bigintmat * h = r->modhnf(mm, C);
-    r->copy(h);
-    delete h;
+    t2 = r->modhnf(mod, C);
     n_Delete(&mod, C);
-    n_Delete(&mm, C);
   } else {
     r->hnf();
+    t2 = new bigintmat(O->getDim(), O->getDim(), C);
+    t2->copySubmatInto(r, 1, O->getDim()+1, O->getDim(), O->getDim(), 1,1);
   }
-  bigintmat * t1 = new bigintmat(O->getDim(), O->getDim(), C),
-            * t2 = new bigintmat(t1);
-  r->splitcol(t1, t2);
-  delete t1;
   delete r;
   if (den) {
     t2->simplifyContentDen(&den);
@@ -205,22 +200,17 @@ nforder_ideal * nf_idMult(nforder_ideal *A, nforder_ideal *B)
   }
 
 
+  bigintmat * t1;
   if (modA && modB) {
     number mod = n_Mult(modA, modB, C);
-    number mm = n_Mult(mod, mod, C);
-    bigintmat * h = r->modhnf(mm, C);
-    r->copy(h);
-    delete h;
+    t1 = r->modhnf(mod, C);
     n_Delete(&mod, C);
-    n_Delete(&mm, C);
   } else {
     r->hnf();
+    t1 = new bigintmat(O->getDim(), O->getDim(), C);
+    r->getColRange(r->cols()-O->getDim()+1, O->getDim(), t1);
   }
-
-  bigintmat * t1 = new bigintmat(O->getDim(), O->getDim(), C);
-  r->getColRange(r->cols()-O->getDim()+1, O->getDim(), t1);
   delete r;
-  t1->Print();
 
   if (A->isFractional()) {
     den = A->viewBasisDen();

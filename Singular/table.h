@@ -670,6 +670,7 @@ struct sValCmd2 dArith2[]=
 ,{D(jjWAITALL2),  WAITALL_CMD,    INT_CMD,        LIST_CMD,   INT_CMD, ALLOW_PLURAL |ALLOW_RING}
 ,{D(jjWEDGE),     WEDGE_CMD,      MATRIX_CMD,     MATRIX_CMD, INT_CMD, NO_PLURAL |ALLOW_RING}
 ,{D(jjHNFMOD_BIM), HNFMOD_CMD,   BIGINTMAT_CMD,  BIGINTMAT_CMD, NUMBER_CMD, ALLOW_PLURAL |ALLOW_RING}
+,{D(jjHOWELL_BIM), HOWELL_CMD,   BIGINTMAT_CMD,  BIGINTMAT_CMD, NUMBER_CMD, ALLOW_PLURAL |ALLOW_RING}
 ,{NULL_VAL,       0,              0,              0,          0, NO_PLURAL |NO_RING}
 };
 /*=================== operations with 3 args.: table =================*/
@@ -915,6 +916,7 @@ cmdnames cmds[] =
   { "hnfdet",      0, HNFDET_CMD,         CMD_1},
   { "hnfmod",      0, HNFMOD_CMD,         CMD_2},
   { "homog",       0, HOMOG_CMD ,         CMD_123},
+  { "howell",      0, HOWELL_CMD,         CMD_2},
   { "hres",        0, HRES_CMD ,          CMD_2},
   { "ideal",       0, IDEAL_CMD ,         RING_DECL_LIST},
   { "if",          0, IF_CMD ,            IF_CMD},

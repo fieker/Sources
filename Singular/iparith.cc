@@ -2081,7 +2081,7 @@ static BOOLEAN jjEXTGCD_BI(leftv res, leftv u, leftv v)
 }
 static BOOLEAN jjHNFMOD_BIM(leftv res, leftv M, leftv v)
 {
-  //TODO: missing to check ig the rings are compatible!
+  //TODO: missing to check if the rings are compatible!
   bigintmat in = (bigintmat*)(M->Data());
   res->data = (char *)(in.modhnf((number)(v->Data()), in.basecoeffs()));
   return FALSE;
@@ -5077,6 +5077,15 @@ static BOOLEAN jjHNF_BIM(leftv res, leftv v)
 {
   bigintmat *in = new bigintmat((bigintmat*)(v->Data()));
   in->hnf();
+  res->data = (char *)(in);
+  return FALSE;
+}
+static BOOLEAN jjHOWELL_BIM(leftv res, leftv v, leftv M)
+{
+  number  n = (number) M->Data();
+  coeffs coe = numbercoeffs(n, coeffs_BIGINT);
+  bigintmat *in = bimChangeCoeff((bigintmat*)(v->Data()), coe);
+  in->howell();
   res->data = (char *)(in);
   return FALSE;
 }

@@ -1216,6 +1216,24 @@ bool bigintmat::copy(bigintmat *b)
   return true;
 }
 
+// copy the submatrix of b, staring at (a,b) having n rows, m cols into
+// the given matrix at pos. (c,d)
+// needs c+n, d+m <= rows, cols
+//       a+n, b+m <= b.rows(), b.cols()
+void bigintmat::copySubmatInto(bigintmat *B, int a, int b, int n, int m, int c, int d)
+{
+  number t1;
+  for (int i=1; i<=n; i++)
+  {
+    for (int j=1; j<=m; j++)
+    {
+      t1 = B->view(a+i-1, b+j-1);
+      set(c+i-1, d+j-1, t1);
+    }
+  }
+}
+
+
 int bigintmat::isOne() {
   coeffs r = basecoeffs();
   if (row==col) {
@@ -1265,7 +1283,6 @@ void bigintmat::zero() {
 }
 
 int bigintmat::isZero() {
-  number tmp = n_Init(0, basecoeffs());
   for (int i=1; i<=row; i++) {
     for (int j=1; j<=col; j++) {
       if (!n_IsZero(view(i,j), basecoeffs()))
@@ -1419,7 +1436,7 @@ number bigintmat::det()
   if (col == 1)
     return get(1, 1);
   // should work as well in Z/pZ of type n_Zp?
-  // elies on XExtGcd and the other euc. functinos.
+  // relies on XExtGcd and the other euc. functinos.
   if ( getCoeffType(basecoeffs())== n_Z || getCoeffType(basecoeffs() )== n_Zn) {
     return hnfdet();
   }
@@ -1491,10 +1508,101 @@ void bigintmat::rowmod(int i, number p, coeffs c)
 }
 #endif
 
+void bigintmat::swapContent(bigintmat *a)
+{
+  int n = rows(), m = cols();
+  row = a->rows();
+  col = a->cols();
+  number * V = v;
+  v = a->v;
+  a->v = V;
+  a->row = n;
+  a->col = m;
+}
+int bigintmat::colIsZero(int j)
+{
+  coeffs R = basecoeffs();
+  for(int i=1; i<rows(); i++)
+    if (!n_IsZero(view(i, j), R)) return FALSE;
+  return TRUE;
+}
+
+void bigintmat::howell()
+{
+  coeffs R = basecoeffs();
+  hnf(); // as a starting point...
+  if (getCoeffType(R)== n_Z) return;
+
+  int n = cols(), m = rows(), i, j, k;
+
+  //make sure, the matrix has enough space. We need no rows+1 columns.
+  //The resulting Howell form will be pruned to be at most square.
+  bigintmat * t = new bigintmat(m, m+1, R);
+  t->copySubmatInto(this, 1, n>m ? n-m+1 : 1, m, n>m ? m : n, 1, n>m ? 2 : m+2-n  );
+  swapContent(t);
+  delete t;
+  for(i=1; i<= cols(); i++) {
+    if (!colIsZero(i)) break;
+  }
+  assume (i>1);
+  if (i>cols()) return; // zero matrix found, clearly normal.
+                        // maybe needs trimming
+
+  int last_zero_col = i-1;
+  for (int c = cols(); c>0; c--) {
+    for(i=rows(); i>0; i--) {
+      if (!n_IsZero(view(i, c), R)) break;
+    }
+    if (i==0) break; // matrix SHOULD be zero from here on
+    number a = n_Ann(view(i, c), R);
+    addcol(last_zero_col, c, a, R);
+    for(j = c-1; j>last_zero_col; j--) {
+      for(k=rows(); k>0; k--) {
+        if (!n_IsZero(view(k, j), R)) break;
+        if (!n_IsZero(view(k, last_zero_col), R)) break;
+      }
+      if (k==0) break;
+      if (!n_IsZero(view(k, last_zero_col), R)) {
+        number gcd, co1, co2, co3, co4;
+        gcd = n_XExtGcd(view(k, last_zero_col), view(k, j), &co1, &co2, &co3, &co4, R);
+        if (n_Equal(gcd, view(k, j), R)) {
+          number q = n_Div(view(k, last_zero_col), gcd, R);
+          q = n_Neg(q, R);
+          addcol(last_zero_col, j, q, R);
+          n_Delete(&q, R);
+        } else if (n_Equal(gcd, view(k, last_zero_col), R)) {
+          swap(last_zero_col, k);
+          number q = n_Div(view(k, last_zero_col), gcd, R);
+          q = n_Neg(q, R);
+          addcol(last_zero_col, j, q, R);
+          n_Delete(&q, R);
+        } else {
+          coltransform(last_zero_col, j, co3, co4, co1, co2);
+        }
+        n_Delete(&gcd, R);
+        n_Delete(&co1, R);
+        n_Delete(&co2, R);
+        n_Delete(&co3, R);
+        n_Delete(&co4, R);
+      } 
+    }
+    for(k=rows(); k>0; k--) {
+      if (!n_IsZero(view(k, last_zero_col), R)) break;
+    }
+    if (k) last_zero_col--;
+  } 
+  t = new bigintmat(rows(), cols()-last_zero_col, R);
+  t->copySubmatInto(this, 1, last_zero_col+1, rows(), cols()-last_zero_col, 1, 1);
+  swapContent(t);
+  delete t;
+}
+
 void bigintmat::hnf()
 {
-  // Keine 100%ige HNF, da Einträge rechts von Diagonalen auch kleiner 0 sein können
   // Laufen von unten nach oben und von links nach rechts
+  // CF: TODO: for n_Z: write a recursive version. This one will
+  //     have exponential blow-up. Look at Michianchio
+  //     Alternatively, do p-adic det and modular method
 
 #if 0
     char * s;
@@ -1595,7 +1703,6 @@ void bigintmat::hnf()
         n_Delete(&u, basecoeffs());
       }
       // Zum Schluss mache alle Einträge rechts vom Diagonalelement betragsmäßig kleiner als dieses
-      // Durch Änderung könnte man auch erreichen, dass diese auch nicht negativ sind
       for (int l=j+1; l<=col; l++) {
         n_Delete(&q, basecoeffs());
         q = n_QuotRem(view(i, l), view(i, j), NULL, basecoeffs());
@@ -1622,6 +1729,8 @@ void bigintmat::hnf()
 #endif
 }
 
+#if 0
+//CF: I have no idea what this is about. It seems not to be called at all
 void bigintmat::modhnf2(number p, coeffs c)
 {
   //CF: seems to do the same as above - until the last step, when the
@@ -1738,6 +1847,7 @@ void bigintmat::modhnf2(number p, coeffs c)
     }
   }
 }
+#endif
 
 bigintmat * bimChangeCoeff(bigintmat *a, coeffs cnew)
 {
@@ -1762,15 +1872,32 @@ bigintmat * bimChangeCoeff(bigintmat *a, coeffs cnew)
   return b;
 }
 
-//a lift of the HNF in Z/pZ
-bigintmat * bigintmat::modhnf(number p, coeffs c)
+//OK: a HNF of (this | p*I)
+//so the result will always have FULL rank!!!!
+//(This is different form a lift of the HNF mod p: consider the matrix (p)
+//to see the different. It CAN be computed as HNF mod p^2 usually..)
+bigintmat * bigintmat::modhnf(number p, coeffs R)
 {
-  coeffs coe = numbercoeffs(p, c);
-  bigintmat *m = bimChangeCoeff(this, coe);
-  m->hnf();
-  bigintmat *a = bimChangeCoeff(m, basecoeffs());
+  coeffs Rp = numbercoeffs(p, R); // R/pR
+  bigintmat *m = bimChangeCoeff(this, Rp);
+  m->howell();
+  bigintmat *a = bimChangeCoeff(m, R); 
   delete m;
-  return a;
+  bigintmat *C = new bigintmat(rows(), rows(), R);
+  a->Print();
+  int piv = rows(), i = a->cols();
+  while (piv) {
+    if (!i || n_IsZero(a->view(piv, i), R)) {
+      C->set(piv, piv, p, R);
+    } else {
+      C->copySubmatInto(a, 1, i, rows(), 1, 1, piv);
+      i--;
+    }
+    piv--;
+  }
+  C->Print();
+  delete a;
+  return C;
 }
 
 
@@ -1926,7 +2053,7 @@ void bimMult(bigintmat *a, bigintmat *b, bigintmat *c)
   delete tmp;
 }
 
-//CF: TODO make work for Z/nZ, no inv.
+//CF: TODO use howell!
 number solvexA(bigintmat *A, bigintmat *b, bigintmat *x) {
   // Bestimme Pseudoinverse, mulipliziere von rechts an b und speichere Ergebnis in x.
   // Gebe Nenner von Pseudoinversen zurück.
@@ -2054,7 +2181,8 @@ void diagonalForm(bigintmat *A, bigintmat ** S, bigintmat ** T)
   A->copy(a);
 }
 
-//CF TODO make work for Z/nZ, don't use gauss
+//a "q-base" for the kernel of a.
+//Should be re-done to use Howell rather than smith.
 int kernbase (bigintmat *a, bigintmat *c, number p, coeffs q) {
 #if 0
   Print("Kernel of ");

@@ -206,7 +206,7 @@ class bigintmat
     bool addcol(int i, int j, number a, coeffs c); // addiert a-faches der j-ten Spalte zur i-ten dazu
     bool addrow(int i, int j, number a, coeffs c); // ... Zeile ...
     void colskalmult(int i, number a, coeffs c); // Multipliziert zur i-ten Spalte den Skalar a hinzu
-    void coltransform(int i, int j, number a, number b, number c, number d); // Multipliziert zur i-ten Spalte den Skalar a hinzu
+    void coltransform(int i, int j, number a, number b, number c, number d); //  transforms cols (i,j) using the 2x2 matrix ((a,b)(c,d)) (hopefully)
     void rowskalmult(int i, number a, coeffs c); // ... Zeile ...
     void concatrow(bigintmat *a, bigintmat *b); // Fügt zwei Matrixen untereinander/nebeneinander in gegebene Matrix ein, bzw spaltet gegebenen Matrix auf
     void concatcol(bigintmat *a, bigintmat *b);
@@ -215,24 +215,26 @@ class bigintmat
     void splitcol(bigintmat *a, int i); // Speichert die ersten i Spalten als Teilmatrix in a
     void splitrow(bigintmat *a, int i); // ... Zeilen ...
     bool copy(bigintmat *b); // Kopiert Einträge von b auf Bigintmat
+    void copySubmatInto(bigintmat *, int sr, int sc, int nr, int nc, int tr, int tc);
     void one(); // Macht Matrix (Falls quadratisch) zu Einheitsmatrix
     int isOne(); // is matrix is identity
     void zero(); // Setzt alle Einträge auf 0
     int isZero(); 
+    int colIsZero(int i);
     bigintmat *elim(int i, int j); // Liefert Streichungsmatrix (i-te Zeile und j-te Spalte gestrichen) zurück
     number pseudoinv(bigintmat *a); // Speichert in Matrix a die Pseudoinverse, liefert den Nenner zurück
     number trace(); // the trace ....
     number det(); // det (via LaPlace in general, hnf for euc. rings)
     number hnfdet(); // det via HNF
     // Primzahlen als long long int, müssen noch in number umgewandelt werden?
-    //void rowmod(int i, number p, coeffs c); // Reduziert Zeile i modulo p
-    void hnf(); // Bringt Matrix in HNF
-    bigintmat * modhnf(number p, coeffs c); // Bringt Matrix modular in HNF
+    void hnf(); // transforms INPLACE to HNF
+    void howell(); //dito, but Howell form (only different for zero-divsors)
+    void swapContent(bigintmat * a); 
+    bigintmat * modhnf(number p, coeffs c); // computes HNF(this | p*I)
     bigintmat * modgauss(number p, coeffs c);
     void skaldiv(number b); // Macht Ganzzahldivision aller Matrixeinträge mit b
     void colskaldiv(int j, number b); // Macht Ganzzahldivision aller j-ten Spalteneinträge mit b
     void mod(number p, coeffs c); // Reduziert komplette Matrix modulo p
-    void modhnf2(number p, coeffs c);
     bigintmat* inpmod(number p, coeffs c); // Liefert Kopie der Matrix zurück, allerdings im Ring Z modulo p
     number content();  //the content
     void simplifyContentDen(number *den); // ensures that Gcd(den, content)=1

@@ -671,6 +671,7 @@ struct sValCmd2 dArith2[]=
 ,{D(jjWEDGE),     WEDGE_CMD,      MATRIX_CMD,     MATRIX_CMD, INT_CMD, NO_PLURAL |ALLOW_RING}
 ,{D(jjHNFMOD_BIM), HNFMOD_CMD,   BIGINTMAT_CMD,  BIGINTMAT_CMD, NUMBER_CMD, ALLOW_PLURAL |ALLOW_RING}
 ,{D(jjHOWELL_BIM), HOWELL_CMD,   BIGINTMAT_CMD,  BIGINTMAT_CMD, NUMBER_CMD, ALLOW_PLURAL |ALLOW_RING}
+,{D(jjSOLVE_BIM), SOLVE_CMD,     BIGINTMAT_CMD,  BIGINTMAT_CMD, BIGINTMAT_CMD, ALLOW_PLURAL |ALLOW_RING}
 ,{NULL_VAL,       0,              0,              0,          0, NO_PLURAL |NO_RING}
 };
 /*=================== operations with 3 args.: table =================*/
@@ -1043,6 +1044,7 @@ cmdnames cmds[] =
   { "simplify",    0, SIMPLIFY_CMD ,      CMD_2},
   { "size",        0, COUNT_CMD ,         CMD_1},
   { "slimgb",      0, SLIM_GB_CMD ,       CMD_1},
+  { "solve",       0, SOLVE_CMD,         CMD_2},
   { "sortvec",     0, SORTVEC_CMD ,       CMD_1},
   { "sqrfree",     0, SQR_FREE_CMD ,      CMD_12},
 #ifdef OLD_RES

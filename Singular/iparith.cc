@@ -5089,6 +5089,23 @@ static BOOLEAN jjHOWELL_BIM(leftv res, leftv v, leftv M)
   res->data = (char *)(in);
   return FALSE;
 }
+static BOOLEAN jjSOLVE_BIM(leftv res, leftv v, leftv M)
+{
+  bigintmat *A, * b, *x;
+  A = (bigintmat *) v->Data();
+  b = (bigintmat *) M->Data();
+  x = new bigintmat(A->cols(), b->cols(), A->basecoeffs());
+  number d;
+  d = solveAx(A, b, x);
+  res->data = (char *)(x);
+  
+  res->next = (leftv)omAlloc0Bin(sleftv_bin);
+  res = res->next;
+  res->rtyp = NUMBER_CMD;
+  res->data = (char*) d;
+  return FALSE;
+}
+
 static BOOLEAN jjINV_BIM(leftv res, leftv v)
 {
 //  res->data = (char *)(((bigintmat*)(v->Data()))->hnf());

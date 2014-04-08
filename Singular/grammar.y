@@ -945,14 +945,14 @@ declare_ip_variable:
           {
             int r; TESTSETINT($4,r);
             int c; TESTSETINT($7,c);
-            if (r < 1)
-              MYYERROR("rows must be greater than 0");
             if (c < 0)
               MYYERROR("cols must be greater than -1");
             leftv v;
             idhdl h;
             if ($1 == MATRIX_CMD)
             {
+              if (r < 1)
+                MYYERROR("rows must be greater than 0");
               if (iiDeclCommand(&$$,&$2,myynest,$1,&(currRing->idroot), TRUE)) YYERROR;
               v=&$$;
               h=(idhdl)v->data;
@@ -962,6 +962,8 @@ declare_ip_variable:
             }
             else if ($1 == INTMAT_CMD)
             {
+              if (r < 1)
+                MYYERROR("rows must be greater than 0");
               if (iiDeclCommand(&$$,&$2,myynest,$1,&($2.req_packhdl->idroot)))
                 YYERROR;
               v=&$$;
@@ -972,6 +974,8 @@ declare_ip_variable:
             }
             else /* BIGINTMAT_CMD */
             {
+              if (r < 0)
+                MYYERROR("rows must be greater than -1");
               if (iiDeclCommand(&$$,&$2,myynest,$1,&($2.req_packhdl->idroot)))
                 YYERROR;
               v=&$$;

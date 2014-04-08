@@ -1281,7 +1281,7 @@ static BOOLEAN jjA_L_BIGINTMAT(leftv l,leftv r,bigintmat *bim)
   /* left side is bigintmat, right side is list (of int,intvec,intmat)*/
   leftv hh=r;
   int i = 0;
-  if (bim->length()==0) { WerrorS("bigintmat is 1x0"); delete bim; return TRUE; }
+  if (bim->length()==0) { WerrorS("bigintmat has no entries (0 rows or columns)"); delete bim; return TRUE; }
   while (hh!=NULL)
   {
     if (i>=bim->cols()*bim->rows())

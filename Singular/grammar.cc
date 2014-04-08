@@ -3391,14 +3391,14 @@ yyreduce:
     {
             int r; TESTSETINT((yyvsp[(4) - (8)].lv),r);
             int c; TESTSETINT((yyvsp[(7) - (8)].lv),c);
-            if (r < 1)
-              MYYERROR("rows must be greater than 0");
             if (c < 0)
               MYYERROR("cols must be greater than -1");
             leftv v;
             idhdl h;
             if ((yyvsp[(1) - (8)].i) == MATRIX_CMD)
             {
+              if (r < 1)
+                MYYERROR("rows must be greater than 0");
               if (iiDeclCommand(&(yyval.lv),&(yyvsp[(2) - (8)].lv),myynest,(yyvsp[(1) - (8)].i),&(currRing->idroot), TRUE)) YYERROR;
               v=&(yyval.lv);
               h=(idhdl)v->data;
@@ -3408,6 +3408,8 @@ yyreduce:
             }
             else if ((yyvsp[(1) - (8)].i) == INTMAT_CMD)
             {
+              if (r < 1)
+                MYYERROR("rows must be greater than 0");
               if (iiDeclCommand(&(yyval.lv),&(yyvsp[(2) - (8)].lv),myynest,(yyvsp[(1) - (8)].i),&((yyvsp[(2) - (8)].lv).req_packhdl->idroot)))
                 YYERROR;
               v=&(yyval.lv);
@@ -3418,6 +3420,8 @@ yyreduce:
             }
             else /* BIGINTMAT_CMD */
             {
+              if (r < 0)
+                MYYERROR("rows must be greater than -1");
               if (iiDeclCommand(&(yyval.lv),&(yyvsp[(2) - (8)].lv),myynest,(yyvsp[(1) - (8)].i),&((yyvsp[(2) - (8)].lv).req_packhdl->idroot)))
                 YYERROR;
               v=&(yyval.lv);

@@ -744,11 +744,9 @@ int bigintmat::findcolnonzero(int j)
 
 void bigintmat::getcol(int j, bigintmat *a)
 {
-  if ((j>col) || (j<1)) {
-    Werror("Error in getcol: Index out of range!");
-    return;
-  }
+  assume((j<=col) && (j>=1));
   if (((a->rows() != row) || (a->cols() != 1)) && ((a->rows() != 1) || (a->cols() != row))) {
+    assume(0);
     Werror("Error in getcol. Dimensions must agree!");
     return;
   }
@@ -1508,7 +1506,7 @@ void bigintmat::rowmod(int i, number p, coeffs c)
 }
 #endif
 
-void bigintmat::swapContent(bigintmat *a)
+void bigintmat::swapMatrix(bigintmat *a)
 {
   int n = rows(), m = cols();
   row = a->rows();
@@ -1539,7 +1537,7 @@ void bigintmat::howell()
   //The resulting Howell form will be pruned to be at most square.
   bigintmat * t = new bigintmat(m, m+1, R);
   t->copySubmatInto(this, 1, n>m ? n-m+1 : 1, m, n>m ? m : n, 1, n>m ? 2 : m+2-n  );
-  swapContent(t);
+  swapMatrix(t);
   delete t;
   for(i=1; i<= cols(); i++) {
     if (!colIsZero(i)) break;
@@ -1593,7 +1591,7 @@ void bigintmat::howell()
   } 
   t = new bigintmat(rows(), cols()-last_zero_col, R);
   t->copySubmatInto(this, 1, last_zero_col+1, rows(), cols()-last_zero_col, 1, 1);
-  swapContent(t);
+  swapMatrix(t);
   delete t;
 }
 
@@ -2053,31 +2051,124 @@ void bimMult(bigintmat *a, bigintmat *b, bigintmat *c)
   delete tmp;
 }
 
-//CF: TODO use howell!
-number solvexA(bigintmat *A, bigintmat *b, bigintmat *x) {
-  // Bestimme Pseudoinverse, mulipliziere von rechts an b und speichere Ergebnis in x.
-  // Gebe Nenner von Pseudoinversen zurück.
-  if (!nCoeffs_are_equal(A->basecoeffs(), b->basecoeffs())) {
-    Werror("Error in solvexA. Coeffs do not agree!");
-    return 0;
+//CF: make ring dependent:
+//  Howell for Z/nZ or generic euc
+//  p-adic(?) for Z?
+number solveAx(bigintmat *A, bigintmat *b, bigintmat *x) {
+  // try to solve Ax=b, more precisely, find 
+  //   number    d
+  //   bigintmat x
+  // sth. Ax=db
+  // where d is small-ish (divides the determinant of A if this makes sense)
+  // return 0 if there is no solution.
+  //
+  // Improve to possibly also return the kernel of A?
+
+#if 0  
+  Print("Solve Ax=b for A=\n");
+  A->Print();
+  Print("\nb = \n");
+  b->Print();
+  Print("\nx = \n");
+  x->Print();
+  Print("\n");
+#endif
+
+  coeffs R = A->basecoeffs();
+  assume (R == b->basecoeffs());
+  assume (R == x->basecoeffs());
+  assume ((x->cols() == b->cols()) && (x->rows() == A->cols()) && (A->rows() == b->rows()));
+   
+  //Algo: we do row-howell (triangular matrix). The idea is
+  //  Ax = b <=>  AT T^-1x = b
+  //  y := T^-1 x, solve AT y = b
+  //  and return Ty.
+  //Howell does not compute the trafo, hence we need to cheat:
+  //B := (I_n | A^t)^t, then the top part of the Howell form of
+  //B will give a useful trafo
+  //Then we can find x by back-subtitution and lcm/gcd to find the denominator
+  //The defining property of Howell makes this work. 
+
+  bigintmat *m = new bigintmat(A->rows()+A->cols(), A->cols(), R);
+  m->copySubmatInto(A, 1, 1, A->rows(), A->cols(), A->cols()+1, 1);
+  number one = n_Init(1, R);
+  for(int i=1; i<= A->cols(); i++)
+    m->set(i,i,one);
+
+  number den = one;
+  m->howell(); // since m contains the identity, we'll have A->cols() 
+               // many cols.
+  bigintmat * B = new bigintmat(A->rows(), 1, R);
+  for(int i=1; i<= b->cols(); i++) {
+    int A_col = A->cols();
+    b->getcol(i, B);
+    B->skalmult(den, R);
+    for(int j = B->rows(); j>0; j--) {
+      number Ai = m->view(m->rows()-B->rows() + j, A_col);
+      if (n_IsZero(Ai, R) &&
+          n_IsZero(B->view(j, 1), R)) {
+        continue; //all is fine: 0*x = 0
+      } else if (n_IsZero(B->view(j, 1), R)) {
+        x->rawset(x->rows() - B->rows() + j, i, n_Init(0, R));  
+        A_col--;
+      } else if (n_IsZero(Ai, R)) {
+        delete m;
+        delete B;
+        n_Delete(&den, R);
+        return 0;
+      } else {
+        // solve ax=db, possibly enlarging d
+        // so x = db/a
+        number Bj = B->view(j, 1);
+        number g = n_Gcd(Bj, Ai, R);
+        number xi;
+        if (n_Equal(Ai, g, R)) { //good: den stable!
+          xi = n_Div(Bj, Ai, R);
+        } else { //den <- den * (a/g), so old sol. needs to be adjusted
+          number inc_d = n_Div(Ai, g, R);
+          n_InpMult(den, inc_d, R);
+          x->skalmult(inc_d, R);
+          B->skalmult(inc_d, R);
+          xi = n_Div(Bj, g, R);
+          n_Delete(&inc_d, R);
+        } //now for the back-substitution:
+        x->rawset(x->rows() - B->rows() + j, i, xi);
+        for(int k=j; k>0; k--) {
+          //B[k] = B[k] - x[k]A[k][j]
+          number s = n_Mult(xi, m->view(m->rows()-B->rows() + k, A_col), R);
+          B->rawset(k, 1, n_Sub(B->view(k, 1), s, R));
+          n_Delete(&s, R);
+        }
+        n_Delete(&g, R);
+        A_col--;
+      }
+      if (!A_col) {
+        if (B->isZero()) break;
+        else {
+          delete m;
+          delete B;
+          n_Delete(&den, R);
+          return 0;
+        }
+      }
+    }
   }
-  if (!nCoeffs_are_equal(A->basecoeffs(), x->basecoeffs())) {
-    Werror("Error in solvexA. Coeffs do not agree!");
-    return 0;
-  }
-  if ((x->rows() != b->rows()) || (x->cols() != A->rows()) || (A->cols() != b->cols())) {
-    Werror("Error in solvexA. Dimensions do not agree!");
-    return 0;
-  }
-  bigintmat *m = new bigintmat(A->rows(), A->cols(), A->basecoeffs());
-  number t = A->pseudoinv(m);
-  if (!(n_IsZero(t, A->basecoeffs()))) {
-    bimMult(b,m,x);
-    delete m;
-    return t;
-  }
+  delete B;
+  bigintmat *T = new bigintmat(A->cols(), A->cols(), R);
+  T->copySubmatInto(m, 1, 1, A->cols(), A->cols(), 1, 1);
   delete m;
-  return 0;
+  bigintmat * y = bimMult(T, x);
+  x->swapMatrix(y);
+  delete y;
+  x->simplifyContentDen(&den);
+#if 0
+  Print("sol = 1/");
+  n_Print(den, R);
+  Print(" *\n");
+  x->Print();
+  Print("\n");
+#endif
+  return den;
 }
 
 void diagonalForm(bigintmat *A, bigintmat ** S, bigintmat ** T)

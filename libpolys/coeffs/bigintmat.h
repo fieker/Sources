@@ -229,7 +229,7 @@ class bigintmat
     // Primzahlen als long long int, müssen noch in number umgewandelt werden?
     void hnf(); // transforms INPLACE to HNF
     void howell(); //dito, but Howell form (only different for zero-divsors)
-    void swapContent(bigintmat * a); 
+    void swapMatrix(bigintmat * a); 
     bigintmat * modhnf(number p, coeffs c); // computes HNF(this | p*I)
     bigintmat * modgauss(number p, coeffs c);
     void skaldiv(number b); // Macht Ganzzahldivision aller Matrixeinträge mit b
@@ -266,7 +266,7 @@ bigintmat * iv2bim(intvec * b, const coeffs C);
 // Wieder von Kira, Jan, Marco
 bigintmat * bimChangeCoeff(bigintmat *a, coeffs cnew); // Liefert Kopier von Matrix a zurück, mit coeffs cnew statt den ursprünglichen
 void bimMult(bigintmat *a, bigintmat *b, bigintmat *c); // Multipliziert Matrix a und b und speichert Ergebnis in c
-number solvexA(bigintmat *A, bigintmat *b, bigintmat *x); // Speichert mit Hauptnenner mult. Lösung von xA=b in Vektor x, liefert Hauptnenner zurück
+number solveAx(bigintmat *A, bigintmat *b, bigintmat *x); // solves Ax=b*d for a minimal denominator d. if x needs to have as many cols as b
 int kernbase (bigintmat *a, bigintmat *c, number p, coeffs q);
 coeffs numbercoeffs(number n, coeffs c);
 bool nCoeffs_are_equal(coeffs r, coeffs s);

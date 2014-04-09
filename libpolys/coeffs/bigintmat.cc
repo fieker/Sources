@@ -13,6 +13,8 @@
 
 #include "bigintmat.h"
 #include <misc/intvec.h>
+#include <coeffs/longrat.h>
+
 
 #include <math.h>
 #include <string.h>
@@ -78,7 +80,7 @@ void bigintmat::set(int i, number n, const coeffs C)
 void bigintmat::set(int i, int j, number n, const coeffs C)
 {
   assume (C == NULL || C == basecoeffs());
-  assume (i >= 0 && j >= 0);
+  assume (i > 0 && j > 0);
   assume (i <= rows() && j <= cols());
   set(index(i, j), n, C);
 }
@@ -101,7 +103,7 @@ number bigintmat::view(int i) const
 
 number bigintmat::get(int i, int j) const
 {
-  assume (i >= 0 && j >= 0);
+  assume (i > 0 && j > 0);
   assume (i <= rows() && j <= cols());
 
   return get(index(i, j));
@@ -406,7 +408,7 @@ void bigintmat::Write()
       n_Write(v[(i-1)*n+j-1], basecoeffs());
       StringAppendS(", ");
     }
-    n_Write(v[i*n-1], basecoeffs());
+    if (n) n_Write(v[i*n-1], basecoeffs());
     StringAppendS(" ]");
     if (i<m) {
       StringAppendS(", ");
@@ -1520,7 +1522,7 @@ void bigintmat::swapMatrix(bigintmat *a)
 int bigintmat::colIsZero(int j)
 {
   coeffs R = basecoeffs();
-  for(int i=1; i<rows(); i++)
+  for(int i=1; i<=rows(); i++)
     if (!n_IsZero(view(i, j), R)) return FALSE;
   return TRUE;
 }
@@ -1529,7 +1531,7 @@ void bigintmat::howell()
 {
   coeffs R = basecoeffs();
   hnf(); // as a starting point...
-  if (getCoeffType(R)== n_Z) return;
+  if (getCoeffType(R)== n_Z) return; //wrong, need to prune!
 
   int n = cols(), m = rows(), i, j, k;
 
@@ -1543,8 +1545,12 @@ void bigintmat::howell()
     if (!colIsZero(i)) break;
   }
   assume (i>1);
-  if (i>cols()) return; // zero matrix found, clearly normal.
-                        // maybe needs trimming
+  if (i>cols()) {
+    t = new bigintmat(rows(), 0, R);
+    swapMatrix(t);
+    delete t;
+    return; // zero matrix found, clearly normal.
+  }
 
   int last_zero_col = i-1;
   for (int c = cols(); c>0; c--) {
@@ -1727,126 +1733,6 @@ void bigintmat::hnf()
 #endif
 }
 
-#if 0
-//CF: I have no idea what this is about. It seems not to be called at all
-void bigintmat::modhnf2(number p, coeffs c)
-{
-  //CF: seems to do the same as above - until the last step, when the
-  //  entire matrix seems to e "reduced mod p".
-  //
-  // Keine 100%ige HNF, da Einträge rechts von Diagonalen auch kleiner 0 sein können
-  // Laufen von unten nach oben und von links nach rechts
-  int i = rows();
-  int j = cols();
-  number invggt;
-  number q;
-  number minusone = n_Init(-1, basecoeffs());
-  number tmp1 = n_Init(0, basecoeffs());
-  number tmp2 = n_Init(0, basecoeffs());
-  number co1 = n_Init(0, basecoeffs());
-  number co2 = n_Init(0, basecoeffs());
-  number ggt = n_Init(0, basecoeffs());
-
-  while ((i>0) && (j>0)) {
-    // Falls erstes Nicht-Null-Element in Zeile i nicht existiert, oder hinter Spalte j vorkommt, gehe in nächste Zeile 
-    if ((findnonzero(i)==0) || (findnonzero(i)>j))
-      i--;
-    else {
-      // Laufe von links nach rechts durch die Zeile:
-      for (int l=1; l<=j-1; l++) {
-        tmp1 = get(i, l);
-        // Falls Eintrag (im folgenden x genannt) gleich 0, gehe eine Spalte weiter. Ansonsten...
-        if (!n_IsZero(tmp1, basecoeffs())) {
-          tmp2 = get(i, l+1);
-          // Falls Eintrag (i.f. y g.) rechts daneben gleich 0, tausche beide Spalten, sonst...
-          if (!n_IsZero(tmp2, basecoeffs())) {
-            ggt = n_ExtGcd(tmp1, tmp2, &co1, &co2, basecoeffs());
-            // Falls x=ggT(x, y), tausche die beiden Spalten und ziehe die (neue) rechte Spalte so häufig von der linken ab, dass an der ehemaligen Stelle von x nun eine 0 steht. Dazu:
-            if (n_Equal(tmp1, ggt, basecoeffs())) { 
-              swap(l, l+1);
-              // Falls wir modulo p rechnen: Multipliziere y mit dem Inversen von ggt, und speichere als q zwischen
-              if (getCoeffType(basecoeffs())==n_Zn) {
-                invggt = n_Invers(ggt, basecoeffs());
-                q = n_Mult(tmp2, invggt, basecoeffs());
-                n_Delete(&invggt, basecoeffs());
-              }
-              else // Ansonsten dividieren wir y durch ggt (ganzzahldivision, geht aber auf)
-                q = n_IntDiv(tmp2, ggt, basecoeffs());
-              q = n_Neg(q, basecoeffs());
-              // Dann addiere das -q-fache der (neuen) rechten Spalte zur linken dazu. Damit erhalten wir die gewünschte 0
-              addcol(l, l+1, q, basecoeffs());
-              n_Delete(&q, basecoeffs());
-            }
-            else if (n_Equal(tmp1, minusone, basecoeffs())) {
-              // Falls x=-1, so ist x=-ggt(x, y). Dann gehe wie oben vor, multipliziere aber zuerst die neue rechte Spalte (die mit x) mit -1
-              // Die Berechnung von q (=y/ggt) entfällt, da ggt=1
-              swap(l, l+1);
-              colskalmult(l+1, minusone, basecoeffs());
-              tmp2 = n_Neg(tmp2, basecoeffs());
-              addcol(l, l+1, tmp2, basecoeffs());
-            }
-            else {
-              // Sonst bringe durch Spaltenoperationen und Koeffizienten des erweiterten ggT den Eintrag an Stelle von y auf den ggt, und ziehe diese Spalte dann entsprechend häufig von der links daneben liegenden ab, um an Stelle des x eine 0 zu erhalten
-              colskalmult(l+1, co2, basecoeffs());
-              addcol(l+1, l, co1, basecoeffs());
-              if (getCoeffType(basecoeffs())==n_Zn) {
-                invggt = n_Invers(ggt, basecoeffs());
-                q = n_Mult(tmp1, invggt, basecoeffs());
-                n_Delete(&invggt, basecoeffs());
-              }
-              else {
-                q = n_IntDiv(tmp1, ggt, basecoeffs());
-              }
-              q = n_Neg(q, basecoeffs());
-              addcol(l, l+1, q, basecoeffs());
-              n_Delete(&q, basecoeffs());
-            }
-          }
-          else {
-            swap(l, l+1);
-          }
-          // Dann betrachte die vormals rechte Spalte als neue linke, und die rechts daneben als neue rechte.
-        }
-      }
-      n_Delete(&tmp1, basecoeffs());
-      n_Delete(&tmp2, basecoeffs());
-      n_Delete(&ggt, basecoeffs());
-      n_Delete(&co1, basecoeffs());
-      n_Delete(&co2, basecoeffs());
-      tmp1 = get(i, j);
-      // Falls wir in Z arbeiten, mache alle Diagonalelemente durch Spaltenmultiplikation mit -1 positiv
-      if (getCoeffType(basecoeffs()) != n_Zn) {
-        if (!(n_GreaterZero(tmp1, basecoeffs()) || n_IsZero(tmp1, basecoeffs()))) {
-          tmp2 = n_Init(-1, basecoeffs());
-          colskalmult(j, tmp2, basecoeffs());
-          n_Delete(&tmp2, basecoeffs());
-        }
-      }
-      // Zum Schluss mache alle Einträge rechts vom Diagonalelement betragsmäßig kleiner als dieses
-      // Durch Änderung könnte man auch erreichen, dass diese auch nicht negativ sind
-      for (int l=j+1; l<=col; l++) {
-        tmp1 = get(i, l);
-        tmp2 = get(i, j);
-        if (getCoeffType(basecoeffs())==n_Zn) {//CF crap
-          invggt = n_Invers(tmp2, basecoeffs());
-          q = n_Mult(tmp1, invggt, basecoeffs());
-          n_Delete(&invggt, basecoeffs());
-        }
-        else
-          q = n_QuotRem(tmp1, tmp2, NULL, basecoeffs());
-        q = n_Neg(q, basecoeffs());
-        addcol(l, j, q, basecoeffs());
-        n_Delete(&q, basecoeffs());
-      }
-      mod(p, c);
-      i--;
-      j--;
-      // Dann betrachte die Zeile darüber und gehe dort wie vorher vor
-    }
-  }
-}
-#endif
-
 bigintmat * bimChangeCoeff(bigintmat *a, coeffs cnew)
 {
   coeffs cold = a->basecoeffs();
@@ -1855,7 +1741,7 @@ bigintmat * bimChangeCoeff(bigintmat *a, coeffs cnew)
   nMapFunc f = n_SetMap(cold, cnew);
   number t1;
   number t2;
-  // Wende Karte auf jeden Eintrag von a an und schreibe Ergebnis in b
+  // apply map to all entries.
   for (int i=1; i<=a->rows(); i++)
   {
     for (int j=1; j<=a->cols(); j++)
@@ -2051,6 +1937,286 @@ void bimMult(bigintmat *a, bigintmat *b, bigintmat *c)
   delete tmp;
 }
 
+static void reduce_mod_howell(bigintmat *A, bigintmat *b, bigintmat * eps, bigintmat *x) {
+  //write b = Ax + eps where eps is "small" in the sense of bounded by the
+  //pivot entries in H. H does not need to be Howell (or HNF) but need
+  //to be triagonal in the same direction.
+  //b can have multiple columns.
+#if 0
+  Print("reduce_mod_howell: A:\n");
+  A->Print();
+  Print("\nb:\n");
+  b->Print();
+#endif
+
+  coeffs R = A->basecoeffs();
+  assume(x->basecoeffs() == R);
+  assume(b->basecoeffs() == R);
+  assume(eps->basecoeffs() == R);
+  if (!A->cols()) {
+    x->zero();
+    eps->copy(b);
+
+#if 0
+    Print("\nx:\n");
+    x->Print();
+    Print("\neps:\n");
+    eps->Print();
+    Print("\n****************************************\n");
+#endif
+    return;
+  }
+
+  bigintmat * B = new bigintmat(b->rows(), 1, R);
+  for(int i=1; i<= b->cols(); i++) {
+    int A_col = A->cols();
+    b->getcol(i, B);
+    for(int j = B->rows(); j>0; j--) {
+      number Ai = A->view(A->rows() - B->rows() + j, A_col);
+      if (n_IsZero(Ai, R) &&
+          n_IsZero(B->view(j, 1), R)) {
+        continue; //all is fine: 0*x = 0
+      } else if (n_IsZero(B->view(j, 1), R)) {
+        x->rawset(x->rows() - B->rows() + j, i, n_Init(0, R));  
+        A_col--;
+      } else if (n_IsZero(Ai, R)) {
+        A_col--;
+      } else {
+        // solve ax=db, possibly enlarging d
+        // so x = db/a
+        number Bj = B->view(j, 1);
+        number q = n_IntDiv(Bj, Ai, R);
+        x->rawset(x->rows() - B->rows() + j, i, q);
+        for(int k=j; k>B->rows() - A->rows(); k--) {
+          //B[k] = B[k] - x[k]A[k][j]
+          number s = n_Mult(q, A->view(A->rows() - B->rows() + k, A_col), R);
+          B->rawset(k, 1, n_Sub(B->view(k, 1), s, R));
+          n_Delete(&s, R);
+        }
+        A_col--;
+      }
+      if (!A_col) {
+        break;
+      }
+    }
+    eps->setcol(i, B);
+  }
+#if 0
+  Print("\nx:\n");
+  x->Print();
+  Print("\neps:\n");
+  eps->Print();
+  Print("\n****************************************\n");
+#endif
+}
+
+static bigintmat * prependIdentity(bigintmat *A)
+{
+  coeffs R = A->basecoeffs();
+  bigintmat *m = new bigintmat(A->rows()+A->cols(), A->cols(), R);
+  m->copySubmatInto(A, 1, 1, A->rows(), A->cols(), A->cols()+1, 1);
+  number one = n_Init(1, R);
+  for(int i=1; i<= A->cols(); i++)
+    m->set(i,i,one);
+  return m;
+}
+
+static number bimFarey(bigintmat *A, number N, bigintmat *L) {
+  coeffs Z = A->basecoeffs(),
+         Q = nInitChar(n_Q, 0);
+  number den = n_Init(1, Z);
+  nMapFunc f = n_SetMap(Q, Z);
+  
+  for(int i=1; i<= A->rows(); i++) {
+    for(int j=1; j<= A->cols(); j++) { 
+      number ad = n_Mult(den, A->view(i, j), Z);
+      number q = n_Farey(ad, N, Z);
+      if (!q) {
+        n_Delete(&ad, Z);
+        n_Delete(&den, Z);
+        return NULL;
+      }
+
+      number d = nlGetDenom(q, Q),
+             n = nlGetNumerator(q, Q);
+
+      n_Delete(&q, Q);
+      n_Delete(&ad, Z);
+      number dz = f(d, Q, Z),
+             nz = f(n, Q, Z);
+      n_Delete(&d, Q);
+      n_Delete(&n, Q);
+
+      number g = n_Lcm(den, dz, Z);
+      if (!n_Equal(g, den, Z)) {
+        number inc = n_Div(g, den, Z);
+        L->skalmult(inc, Z);
+        n_Delete(&inc, Z);
+        n_Delete(&den, Z);
+        den = g;
+      } else {
+        n_Delete(&g, Z);
+      }
+      n_Delete(&dz, Z);
+      L->rawset(i, j, nz);
+    }
+  }
+
+  nKillChar(Q);
+#if 0
+  Print("bimFarey worked\n");
+  L->Print();
+  Print("\n * 1/");
+  n_Print(den, Z);
+  Print("\n");
+#endif
+  return den;
+}
+
+static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat *kern) {
+  coeffs R = A->basecoeffs();
+
+  assume(getCoeffType(R) == n_Z); 
+
+  number p = n_Init(536870909, R); // PreviousPrime(2^29); not clever
+  coeffs Rp = numbercoeffs(p, R); // R/pR
+  bigintmat *Ap = bimChangeCoeff(A, Rp),
+            *m = prependIdentity(Ap),
+            *Tp, *Hp;
+  m->howell();
+  Hp = new bigintmat(A->rows(), A->cols(), Rp);
+  Hp->copySubmatInto(m, A->cols()+1, 1, A->rows(), A->cols(), 1, 1);
+  Tp = new bigintmat(A->cols(), A->cols(), Rp);
+  Tp->copySubmatInto(m, 1, 1, A->cols(), A->cols(), 1, 1);
+
+  int i, j;
+
+  for(i=1; i<= A->cols(); i++) {
+    for(j=m->rows(); j>A->cols(); j--) {
+      if (!n_IsZero(m->view(j, i), Rp)) break;
+    }
+    if (j>A->cols()) break;
+  }
+//  Print("Found nullity (kern dim) of %d\n", i-1);
+  bigintmat * kp = new bigintmat(A->cols(), i-1, Rp);
+  kp->copySubmatInto(Tp, 1, 1, A->cols(), i-1, 1, 1);
+  kp->howell(); 
+
+  delete m;
+
+  //Hp is the mod-p howell form
+  //Tp the tranformation, mod p
+  //kp a basis for the kernel, in howell form, mod p
+
+  bigintmat * eps_p = new bigintmat(B->rows(), B->cols(), Rp),
+            * x_p   = new bigintmat(A->cols(), B->cols(), Rp),
+            * fps_p = new bigintmat(kp->cols(), B->cols(), Rp);
+
+  //initial solution
+
+  number zero = n_Init(0, R);
+  x->skalmult(zero, R);
+  n_Delete(&zero, R);
+
+  bigintmat * b = new bigintmat(B);
+  number pp = n_Init(1, R);
+  i = 1;
+  do {
+    bigintmat * b_p = bimChangeCoeff(b, Rp), * s;
+    bigintmat * t1, *t2;
+    reduce_mod_howell(Hp, b_p, eps_p, x_p);
+    delete b_p;
+    if (!eps_p->isZero()) {
+      Print("no solution, since no modular solution\n");
+
+      delete eps_p;
+      delete x_p;
+      delete Hp;
+      delete kp;
+      delete Tp;
+      delete b;
+      n_Delete(&pp, R);
+      n_Delete(&p, R);
+      nKillChar(Rp);
+
+      return NULL;
+    }
+    assume(eps_p->isZero());
+    x_p = bimMult(Tp, x_p);
+    reduce_mod_howell(kp, x_p, x_p, fps_p);  //we're not all interested in fps_p
+    s = bimChangeCoeff(x_p, R);
+    t1 = bimMult(A, s);
+    t2 = bimSub(b, t1);
+    t2->skaldiv(p);
+    delete b;
+    delete t1;
+    b = t2;
+    s->skalmult(pp, R);
+    t1 = bimAdd(x, s);
+    delete s;
+    x->swapMatrix(t1);
+    delete t1;
+    n_InpMult(pp, p, R);
+
+    if (b->isZero()) {
+      //exact solution found, stop
+      delete eps_p;
+      delete x_p;
+      delete Hp;
+      delete kp;
+      delete Tp;
+      delete b;
+      n_Delete(&pp, R);
+      n_Delete(&p, R);
+      nKillChar(Rp);
+
+      return n_Init(1, R);
+    } else {
+      bigintmat *y = new bigintmat(x);
+      number d = bimFarey(x, pp, y);
+      if (d) {
+        bigintmat *c = bimMult(A, y);
+        bigintmat *bd = new bigintmat(B);
+        bd->skalmult(d, R);
+        if (*c == *bd) {
+          x->swapMatrix(y);
+          delete y;
+
+          delete c;
+          delete bd;
+
+          delete eps_p;
+          delete x_p;
+          delete Hp;
+          delete kp;
+          delete Tp;
+          delete b;
+          n_Delete(&pp, R);
+          n_Delete(&p, R);
+          nKillChar(Rp);
+
+          return d;
+        } 
+        delete c;
+        delete bd;
+        n_Delete(&d, R);
+      }
+      delete y;
+    }
+    i++;
+  } while (i<5);
+  delete eps_p;
+  delete x_p;
+  delete Hp;
+  delete kp;
+  delete Tp;
+  n_Delete(&pp, R);
+  n_Delete(&p, R);
+  nKillChar(Rp);
+  return NULL;
+}
+
+//TODO: re-write using reduce_mod_howell
 static number solveAx_howell(bigintmat *A, bigintmat *b, bigintmat *x, bigintmat *kern) {
   // try to solve Ax=b, more precisely, find 
   //   number    d
@@ -2068,18 +2234,15 @@ static number solveAx_howell(bigintmat *A, bigintmat *b, bigintmat *x, bigintmat
   //Howell does not compute the trafo, hence we need to cheat:
   //B := (I_n | A^t)^t, then the top part of the Howell form of
   //B will give a useful trafo
-  //Then we can find x by back-subtitution and lcm/gcd to find the denominator
+  //Then we can find x by back-substitution and lcm/gcd to find the denominator
   //The defining property of Howell makes this work. 
 
-  bigintmat *m = new bigintmat(A->rows()+A->cols(), A->cols(), R);
-  m->copySubmatInto(A, 1, 1, A->rows(), A->cols(), A->cols()+1, 1);
-  number one = n_Init(1, R);
-  for(int i=1; i<= A->cols(); i++)
-    m->set(i,i,one);
-
-  number den = one;
+  coeffs R = A->basecoeffs();
+  bigintmat *m = prependIdentity(A);
   m->howell(); // since m contains the identity, we'll have A->cols() 
                // many cols.
+  number den = n_Init(1, R);
+
   bigintmat * B = new bigintmat(A->rows(), 1, R);
   for(int i=1; i<= b->cols(); i++) {
     int A_col = A->cols();
@@ -2139,9 +2302,10 @@ static number solveAx_howell(bigintmat *A, bigintmat *b, bigintmat *x, bigintmat
   bigintmat *T = new bigintmat(A->cols(), A->cols(), R);
   T->copySubmatInto(m, 1, 1, A->cols(), A->cols(), 1, 1);
   if (kern) {
+    int i, j;
     for(i=1; i<= A->cols(); i++) {
       for(j=m->rows(); j>A->cols(); j--) {
-        if (!n_IsZero(m->view(j, i))) break;
+        if (!n_IsZero(m->view(j, i), R)) break;
       }
       if (j>A->cols()) break;
     }
@@ -2183,11 +2347,12 @@ number solveAx(bigintmat *A, bigintmat *b, bigintmat *x) {
   assume ((x->cols() == b->cols()) && (x->rows() == A->cols()) && (A->rows() == b->rows()));
  
   switch (getCoeffType(R)) {
-    case n_Z: //Dixon?
+    case n_Z:
+      return solveAx_dixon(A, b, x, NULL);
     case n_Zn:
     case n_Znm:
     case n_Z2m:
-      return solveAx_howell(A, b, x);
+      return solveAx_howell(A, b, x, NULL);
     case n_Zp:
     case n_Q:
     case n_GF:
@@ -2196,7 +2361,7 @@ number solveAx(bigintmat *A, bigintmat *b, bigintmat *x) {
       Warn("have field, should use Gauss or better");
     default:
       if (R->cfXExtGcd && R->cfAnn) { //assume it's Euclidean
-        return solveAx_howell(A, b, x);
+        return solveAx_howell(A, b, x, NULL);
       }
       Werror("have no solve algorithm");
   }

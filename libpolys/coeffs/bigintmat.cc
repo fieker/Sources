@@ -2051,10 +2051,7 @@ void bimMult(bigintmat *a, bigintmat *b, bigintmat *c)
   delete tmp;
 }
 
-//CF: make ring dependent:
-//  Howell for Z/nZ or generic euc
-//  p-adic(?) for Z?
-number solveAx(bigintmat *A, bigintmat *b, bigintmat *x) {
+static number solveAx_howell(bigintmat *A, bigintmat *b, bigintmat *x, bigintmat *kern) {
   // try to solve Ax=b, more precisely, find 
   //   number    d
   //   bigintmat x
@@ -2062,23 +2059,8 @@ number solveAx(bigintmat *A, bigintmat *b, bigintmat *x) {
   // where d is small-ish (divides the determinant of A if this makes sense)
   // return 0 if there is no solution.
   //
-  // Improve to possibly also return the kernel of A?
-
-#if 0  
-  Print("Solve Ax=b for A=\n");
-  A->Print();
-  Print("\nb = \n");
-  b->Print();
-  Print("\nx = \n");
-  x->Print();
-  Print("\n");
-#endif
-
-  coeffs R = A->basecoeffs();
-  assume (R == b->basecoeffs());
-  assume (R == x->basecoeffs());
-  assume ((x->cols() == b->cols()) && (x->rows() == A->cols()) && (A->rows() == b->rows()));
-   
+  // if kern is non-NULL, return a basis for the kernel
+  
   //Algo: we do row-howell (triangular matrix). The idea is
   //  Ax = b <=>  AT T^-1x = b
   //  y := T^-1 x, solve AT y = b
@@ -2156,6 +2138,19 @@ number solveAx(bigintmat *A, bigintmat *b, bigintmat *x) {
   delete B;
   bigintmat *T = new bigintmat(A->cols(), A->cols(), R);
   T->copySubmatInto(m, 1, 1, A->cols(), A->cols(), 1, 1);
+  if (kern) {
+    for(i=1; i<= A->cols(); i++) {
+      for(j=m->rows(); j>A->cols(); j--) {
+        if (!n_IsZero(m->view(j, i))) break;
+      }
+      if (j>A->cols()) break;
+    }
+    Print("Found nullity (kern dim) of %d\n", i-1);
+    bigintmat * ker = new bigintmat(A->rows(), i-1, R);
+    ker->copySubmatInto(T, 1, 1, A->rows(), i-1, 1, 1);
+    kern->swapMatrix(ker);
+    delete ker;
+  }
   delete m;
   bigintmat * y = bimMult(T, x);
   x->swapMatrix(y);
@@ -2169,6 +2164,43 @@ number solveAx(bigintmat *A, bigintmat *b, bigintmat *x) {
   Print("\n");
 #endif
   return den;
+}
+
+number solveAx(bigintmat *A, bigintmat *b, bigintmat *x) {
+#if 0  
+  Print("Solve Ax=b for A=\n");
+  A->Print();
+  Print("\nb = \n");
+  b->Print();
+  Print("\nx = \n");
+  x->Print();
+  Print("\n");
+#endif
+
+  coeffs R = A->basecoeffs();
+  assume (R == b->basecoeffs());
+  assume (R == x->basecoeffs());
+  assume ((x->cols() == b->cols()) && (x->rows() == A->cols()) && (A->rows() == b->rows()));
+ 
+  switch (getCoeffType(R)) {
+    case n_Z: //Dixon?
+    case n_Zn:
+    case n_Znm:
+    case n_Z2m:
+      return solveAx_howell(A, b, x);
+    case n_Zp:
+    case n_Q:
+    case n_GF:
+    case n_algExt:
+    case n_transExt:
+      Warn("have field, should use Gauss or better");
+    default:
+      if (R->cfXExtGcd && R->cfAnn) { //assume it's Euclidean
+        return solveAx_howell(A, b, x);
+      }
+      Werror("have no solve algorithm");
+  }
+  return NULL;
 }
 
 void diagonalForm(bigintmat *A, bigintmat ** S, bigintmat ** T)

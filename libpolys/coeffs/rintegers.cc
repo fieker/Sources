@@ -785,6 +785,73 @@ number nrzNeg (number c, const coeffs)
   return c;
 }
 
+static number nrzFarey(number r, number N, const coeffs R)
+{
+  number a0 = nrzCopy(N, R);
+  number b0 = nrzInit(0, R);
+  number a1 = nrzCopy(r, R);
+  number b1 = nrzInit(1, R);
+  number two = nrzInit(2, R);
+#if 0
+  Print("Farey start with ");
+  n_Print(r, R);
+  Print(" mod ");
+  n_Print(N, R);
+  Print("\n");
+#endif
+  while (1) {
+    number as = nrzMult(a1, a1, R);
+    n_InpMult(as, two, R);
+    if (nrzGreater(N, as, R)) {
+      nrzDelete(&as, R);
+      break;
+    }
+    nrzDelete(&as, R);
+    number q = nrzIntDiv(a0, a1, R);
+    number t = nrzMult(a1, q, R),
+           s = nrzSub(a0, t, R);
+    nrzDelete(&a0, R);
+    a0 = a1;
+    a1 = s;
+    nrzDelete(&t, R);
+
+    t = nrzMult(b1, q, R);
+    s = nrzSub(b0, t, R);
+    nrzDelete(&b0, R);
+    b0 = b1;
+    b1 = s;
+    nrzDelete(&t, R);
+    nrzDelete(&q, R);
+  }
+  number as = nrzMult(b1, b1, R);
+  n_InpMult(as, two, R);
+  nrzDelete(&two, R);
+  if (nrzGreater(as, N, R)) {
+    nrzDelete(&a0, R);
+    nrzDelete(&a1, R);
+    nrzDelete(&b0, R);
+    nrzDelete(&b1, R);
+    nrzDelete(&as, R);
+    return NULL;
+  }
+  nrzDelete(&a0, R);
+  nrzDelete(&b0, R);
+
+  number a, b, ab;
+  coeffs Q = nInitChar(n_Q, 0);
+  nMapFunc f = n_SetMap(R, Q);
+  a = f(a1, R, Q);
+  b = f(b1, R, Q);
+  ab = n_Div(a, b, Q);
+  n_Delete(&a, Q);
+  n_Delete(&b, Q);
+  nKillChar(Q);
+
+  nrzDelete(&a1, R);
+  nrzDelete(&b1, R);
+  return ab;
+}
+
 number nrzMapMachineInt(number from, const coeffs /*src*/, const coeffs /*dst*/)
 {
   int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
@@ -1016,6 +1083,7 @@ BOOLEAN nrzInitChar(coeffs r,  void *)
   r->convSingNFactoryN = nrzConvSingNFactoryN;
   r->convFactoryNSingN = nrzConvFactoryNSingN;
   r->cfMPZ = nrzMPZ;
+  r->cfFarey = nrzFarey;
 
   // debug stuff
 

@@ -99,6 +99,8 @@ number nrzMult (number a, number b, const coeffs R)
 {
   if (n_Z_IS_SMALL(a) && n_Z_IS_SMALL(b)) {
   //from longrat.cc 
+    if (SR_TO_INT(a)==0)
+      return a;
     if (SR_TO_INT(b)==0)
       return b;
     long r=(long)((unsigned long)(SR_HDL(a)-1L))*((unsigned long)(SR_HDL(b)>>1));
@@ -114,11 +116,15 @@ number nrzMult (number a, number b, const coeffs R)
     mpz_mul_si(erg, erg, SR_TO_INT(b));
     return (number) erg;
   } else if (n_Z_IS_SMALL(a)) {
+    if (SR_TO_INT(a)==0)
+      return a;
     int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init_set(erg, (int_number) b);
     mpz_mul_si(erg, erg, SR_TO_INT(a));
     return (number) erg;
   } else if (n_Z_IS_SMALL(b)) {
+    if (SR_TO_INT(b)==0)
+      return b;
     int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init_set(erg, (int_number) a);
     mpz_mul_si(erg, erg, SR_TO_INT(b));
@@ -834,6 +840,7 @@ static number nrzFarey(number r, number N, const coeffs R)
     nrzDelete(&as, R);
     return NULL;
   }
+  nrzDelete(&as, R);
   nrzDelete(&a0, R);
   nrzDelete(&b0, R);
 

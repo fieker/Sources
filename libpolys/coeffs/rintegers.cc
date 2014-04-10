@@ -167,7 +167,7 @@ number nrzLcm (number a, number b, const coeffs R)
     erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init_set(erg, (int_number) a);
     unsigned long g = mpz_gcd_ui(NULL, erg, (unsigned long) ABS(SR_TO_INT(b)));
-    mpz_mul_si(erg, erg, SR_TO_INT(a)/g);
+    mpz_mul_si(erg, erg, SR_TO_INT(b)/g);
   } else {
     erg = (int_number) omAllocBin(gmp_nrz_bin);
     mpz_init(erg);

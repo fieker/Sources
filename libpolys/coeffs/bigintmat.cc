@@ -2030,10 +2030,13 @@ static number bimFarey(bigintmat *A, number N, bigintmat *L) {
   for(int i=1; i<= A->rows(); i++) {
     for(int j=1; j<= A->cols(); j++) { 
       number ad = n_Mult(den, A->view(i, j), Z);
-      number q = n_Farey(ad, N, Z);
+      number re = n_IntMod(ad, N, Z);
+      n_Delete(&ad, Z);
+      number q = n_Farey(re, N, Z);
       if (!q) {
         n_Delete(&ad, Z);
         n_Delete(&den, Z);
+        Print("bimFarey faield\n");
         return NULL;
       }
 
@@ -2047,15 +2050,14 @@ static number bimFarey(bigintmat *A, number N, bigintmat *L) {
       n_Delete(&d, Q);
       n_Delete(&n, Q);
 
-      number g = n_Lcm(den, dz, Z);
-      if (!n_Equal(g, den, Z)) {
-        number inc = n_Div(g, den, Z);
-        L->skalmult(inc, Z);
-        n_Delete(&inc, Z);
-        n_Delete(&den, Z);
-        den = g;
-      } else {
-        n_Delete(&g, Z);
+      if (!n_IsOne(dz, Z)) {
+        L->skalmult(dz, Z);
+        n_InpMult(den, dz, Z);
+#if 0
+        Print("den increasing to ");
+        n_Print(den, Z);
+        Print("\n");
+#endif
       }
       n_Delete(&dz, Z);
       L->rawset(i, j, nz);
@@ -2063,8 +2065,8 @@ static number bimFarey(bigintmat *A, number N, bigintmat *L) {
   }
 
   nKillChar(Q);
-#if 0
   Print("bimFarey worked\n");
+#if 0
   L->Print();
   Print("\n * 1/");
   n_Print(den, Z);
@@ -2170,9 +2172,11 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
       n_Delete(&p, R);
       nKillChar(Rp);
 
+      Print("done\n");
       return n_Init(1, R);
     } else {
       bigintmat *y = new bigintmat(x);
+      y->zero();
       number d = bimFarey(x, pp, y);
       if (d) {
         bigintmat *c = bimMult(A, y);
@@ -2195,8 +2199,10 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
           n_Delete(&p, R);
           nKillChar(Rp);
 
+      Print("Farey done\n");
           return d;
         } 
+      Print("Farey done, but wrong\n");
         delete c;
         delete bd;
         n_Delete(&d, R);
@@ -2204,7 +2210,7 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
       delete y;
     }
     i++;
-  } while (i<5);
+  } while (i<80);
   delete eps_p;
   delete x_p;
   delete Hp;

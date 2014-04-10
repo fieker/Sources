@@ -1560,6 +1560,7 @@ void bigintmat::howell()
     if (i==0) break; // matrix SHOULD be zero from here on
     number a = n_Ann(view(i, c), R);
     addcol(last_zero_col, c, a, R);
+    n_Delete(&a, R);
     for(j = c-1; j>last_zero_col; j--) {
       for(k=rows(); k>0; k--) {
         if (!n_IsZero(view(k, j), R)) break;
@@ -1624,10 +1625,7 @@ void bigintmat::hnf()
   number minusone = n_Init(-1, basecoeffs());
   number tmp1 = n_Init(0, basecoeffs());
   number tmp2 = n_Init(0, basecoeffs());
-  number co1 = n_Init(0, basecoeffs());
-  number co2 = n_Init(0, basecoeffs());
-  number co3 = n_Init(0, basecoeffs());
-  number co4 = n_Init(0, basecoeffs());
+  number co1, co2, co3, co4;
   number ggt = n_Init(0, basecoeffs());
 
   while ((i>0) && (j>0)) {
@@ -1722,9 +1720,8 @@ void bigintmat::hnf()
   n_Delete(&tmp1, basecoeffs());
   n_Delete(&tmp2, basecoeffs());
   n_Delete(&ggt, basecoeffs());
-  n_Delete(&co1, basecoeffs());
-  n_Delete(&co2, basecoeffs());
   n_Delete(&one, basecoeffs());
+  n_Delete(&minusone, basecoeffs());
 
 #if 0
     ::Print("hnf over Z is \n");
@@ -2001,6 +1998,7 @@ static void reduce_mod_howell(bigintmat *A, bigintmat *b, bigintmat * eps, bigin
     }
     eps->setcol(i, B);
   }
+  delete B;
 #if 0
   Print("\nx:\n");
   x->Print();
@@ -2018,6 +2016,7 @@ static bigintmat * prependIdentity(bigintmat *A)
   number one = n_Init(1, R);
   for(int i=1; i<= A->cols(); i++)
     m->set(i,i,one);
+  n_Delete(&one, R);
   return m;
 }
 
@@ -2033,10 +2032,10 @@ static number bimFarey(bigintmat *A, number N, bigintmat *L) {
       number re = n_IntMod(ad, N, Z);
       n_Delete(&ad, Z);
       number q = n_Farey(re, N, Z);
+      n_Delete(&re, Z);
       if (!q) {
         n_Delete(&ad, Z);
         n_Delete(&den, Z);
-        Print("bimFarey faield\n");
         return NULL;
       }
 
@@ -2085,6 +2084,7 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
   bigintmat *Ap = bimChangeCoeff(A, Rp),
             *m = prependIdentity(Ap),
             *Tp, *Hp;
+  delete Ap;
   m->howell();
   Hp = new bigintmat(A->rows(), A->cols(), Rp);
   Hp->copySubmatInto(m, A->cols()+1, 1, A->rows(), A->cols(), 1, 1);
@@ -2144,7 +2144,9 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
       return NULL;
     }
     assume(eps_p->isZero());
-    x_p = bimMult(Tp, x_p);
+    t1 = bimMult(Tp, x_p);
+    delete x_p;
+    x_p = t1;
     reduce_mod_howell(kp, x_p, x_p, fps_p);  //we're not all interested in fps_p
     s = bimChangeCoeff(x_p, R);
     t1 = bimMult(A, s);
@@ -2163,6 +2165,7 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
     if (b->isZero()) {
       //exact solution found, stop
       delete eps_p;
+      delete fps_p;
       delete x_p;
       delete Hp;
       delete kp;
@@ -2172,11 +2175,9 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
       n_Delete(&p, R);
       nKillChar(Rp);
 
-      Print("done\n");
       return n_Init(1, R);
     } else {
-      bigintmat *y = new bigintmat(x);
-      y->zero();
+      bigintmat *y = new bigintmat(x->rows(), x->cols(), R);
       number d = bimFarey(x, pp, y);
       if (d) {
         bigintmat *c = bimMult(A, y);
@@ -2190,6 +2191,7 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
           delete bd;
 
           delete eps_p;
+          delete fps_p;
           delete x_p;
           delete Hp;
           delete kp;
@@ -2199,10 +2201,8 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
           n_Delete(&p, R);
           nKillChar(Rp);
 
-      Print("Farey done\n");
           return d;
         } 
-      Print("Farey done, but wrong\n");
         delete c;
         delete bd;
         n_Delete(&d, R);
@@ -2210,8 +2210,9 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
       delete y;
     }
     i++;
-  } while (i<80);
+  } while (1);
   delete eps_p;
+  delete fps_p;
   delete x_p;
   delete Hp;
   delete kp;
@@ -2529,6 +2530,7 @@ coeffs numbercoeffs(number n, coeffs c) {
   pp->base = p;
   pp->exp = 1;
   coeffs nc = nInitChar(n_Zn, (void*)pp);
+  mpz_clear(p);
   delete pp;
   return nc;
 }

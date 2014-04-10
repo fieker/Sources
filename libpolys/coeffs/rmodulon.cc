@@ -65,9 +65,9 @@ static char* nrnCoeffString(const coeffs r)
 static void nrnKillChar(coeffs r) 
 {
   mpz_clear(r->modNumber);
-//  mpz_clear(r->modBase); //CF: difficult: in biginmat.cc we're creating
-//                         // a modBase but cannot create legally one that can
-//                         // freed.
+  mpz_clear(r->modBase);
+  omFreeBin((void *) r->modBase, gmp_nrz_bin);
+  omFreeBin((void *) r->modNumber, gmp_nrz_bin); 
 }
 
 /* for initializing function pointers */
@@ -75,7 +75,9 @@ BOOLEAN nrnInitChar (coeffs r, void* p)
 {
   assume( (getCoeffType(r) == ID) || (getCoeffType (r) == ID2) );
   ZnmInfo * info= (ZnmInfo *) p;
-  r->modBase= info->base;
+  r->modBase= (int_number)nrnCopy((number)info->base, r); //this circumvents the problem
+  //in bigintmat.cc where we cannot create a "legal" nrn that can be freed.
+  //If we take a copy, we can do whatever we want.
 
   nrnInitExp (info->exp, r);
 
@@ -355,7 +357,9 @@ number nrnXExtGcd(number a, number b, number *s, number *t, number *u, number *v
 #ifdef CF_DEB
     Print("Scaling\n");
 #endif
-    ui = nrnInvers(ui, r);
+    number uii = nrnInvers(ui, r);
+    nrnDelete(&ui, r);
+    ui = uii;
     int_number uu = (int_number)omAllocBin(gmp_nrz_bin);
     mpz_init_set(uu, (int_number)ui);
     mpz_mul(bu, bu, uu);

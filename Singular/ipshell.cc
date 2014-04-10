@@ -2056,6 +2056,7 @@ void rComposeRing(lists L, ring R)
       info.base= modBase;
       info.exp= modExponent;
       R->cf=nInitChar(n_Znm,(void*) &info);
+      omFreeSize (modBase, sizeof(mpz_t));
     }
   }
   // just a module m > 1
@@ -2067,6 +2068,7 @@ void rComposeRing(lists L, ring R)
     info.base= modBase;
     info.exp= modExponent;
     R->cf=nInitChar(n_Zn,(void*) &info);
+    omFreeSize (modBase, sizeof(mpz_t));
   }
 }
 #endif
@@ -5259,6 +5261,8 @@ ring rInit(sleftv* pn, sleftv* rv, sleftv* ord)
         info.base= modBase;
         info.exp= modExponent;
         cf=nInitChar(n_Znm,(void*) &info); //exponent is missing
+        omFreeSize (modBase, sizeof (mpz_t));
+
       }
     }
     // just a module m > 1
@@ -5274,6 +5278,7 @@ ring rInit(sleftv* pn, sleftv* rv, sleftv* ord)
       info.base= modBase;
       info.exp= modExponent;
       cf=nInitChar(n_Zn,(void*) &info);
+      omFreeSize (modBase, sizeof (mpz_t));
     }
     assume( cf != NULL );
   }

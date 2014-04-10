@@ -48,6 +48,7 @@ BOOLEAN jjCRING_Zp(leftv res, leftv a, leftv b)
       info.base= modBase;
       info.exp= 1;
       res->data=(void *)nInitChar(n_Zn,&info);
+      omFreeSize(modBase, sizeof(mpz_t));
     }
     return FALSE;
   }
@@ -65,6 +66,7 @@ BOOLEAN jjCRING_Zm(leftv res, leftv a, leftv b)
     info.base= (mpz_ptr)modBase;
     info.exp= 1;
     res->data=(void *)nInitChar(n_Zn,&info);
+    omFreeSize(modBase, sizeof(mpz_t));
     return FALSE;
   }
   return TRUE;

@@ -5086,7 +5086,10 @@ static BOOLEAN jjHOWELL_BIM(leftv res, leftv v, leftv M)
   coeffs coe = numbercoeffs(n, coeffs_BIGINT);
   bigintmat *in = bimChangeCoeff((bigintmat*)(v->Data()), coe);
   in->howell();
-  res->data = (char *)(in);
+  bigintmat *out = bimChangeCoeff(in, coeffs_BIGINT);
+  nKillChar(coe);
+  delete in;
+  res->data = (char *)(out);
   return FALSE;
 }
 static BOOLEAN jjSOLVE_BIM(leftv res, leftv v, leftv M)

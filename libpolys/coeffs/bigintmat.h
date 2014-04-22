@@ -200,6 +200,8 @@ class bigintmat
     void getrow(int i, bigintmat *a); // Schreibt i-te Zeile in Vektor (Matrix) a
     void setcol(int j, bigintmat *m); // Setzt j-te Spalte gleich übergebenem Vektor (Matrix) m
     void setrow(int i, bigintmat *m); // Setzt i-te Zeile gleich übergebenem Vektor (Matrix) m
+    void appendCol (bigintmat *a);
+    void extendCols (int i);
     bool add(bigintmat *b); // Addiert zur Matrix die Matrix b dazu. Return false => an error occured
     bool sub(bigintmat *b); // Subtrahiert ...
     bool skalmult(number b, coeffs c); // Multipliziert zur Matrix den Skalar b hinzu
@@ -254,10 +256,6 @@ bigintmat * bimMult(bigintmat * a, bigintmat * b);
 bigintmat * bimMult(bigintmat * a, int b);
 bigintmat * bimMult(bigintmat * a, number b, const coeffs cf);
 bigintmat * bimCopy(const bigintmat * b);
-
-int getShorter (int * a, int l, int j, int cols, int rows);
-int findLongest(int * a, int length);
-int intArrSum(int * a, int length);
 
 class intvec;
 intvec * bim2iv(bigintmat * b);

@@ -181,9 +181,11 @@ bigintmat * bimAdd(bigintmat * a, bigintmat * b)
 
   return bim;
 }
-bigintmat * bimAdd(bigintmat * a, int b)
+bigintmat * bimAdd(bigintmat * a, int b) //WHY????
 {
 
+  Werror("this does not make any sense bim + int called");
+  return 0;
   const int mn = a->rows()*a->cols();
 
   const coeffs basecoeffs = a->basecoeffs();
@@ -221,6 +223,8 @@ bigintmat * bimSub(bigintmat * a, bigintmat * b)
 bigintmat * bimSub(bigintmat * a, int b)
 {
 
+  Werror("this does not make any sense bim + int called");
+  return 0;
   const int mn = a->rows()*a->cols();
 
   const coeffs basecoeffs = a->basecoeffs();
@@ -237,6 +241,7 @@ bigintmat * bimSub(bigintmat * a, int b)
   return bim;
 }
 
+//TODO: make special versions for certain rings!
 bigintmat * bimMult(bigintmat * a, bigintmat * b)
 {
   const int ca = a->cols();
@@ -511,7 +516,7 @@ char* bigintmat::StringAsPrinted()
 }
 }
 
-int intArrSum(int * a, int length)
+static int intArrSum(int * a, int length)
 {
   int sum = 0;
   for (int i=0; i<length; i++)
@@ -519,7 +524,7 @@ int intArrSum(int * a, int length)
   return sum;
 }
 
-int findLongest(int * a, int length)
+static int findLongest(int * a, int length)
 {
   int l = 0;
   int index;
@@ -534,7 +539,7 @@ int findLongest(int * a, int length)
   return index;
 }
 
-int getShorter (int * a, int l, int j, int cols, int rows)
+static int getShorter (int * a, int l, int j, int cols, int rows)
 {
   int sndlong = 0;
   int min;
@@ -673,6 +678,7 @@ void bigintmat::pprint(int maxwid)
 }
 
 
+//swaps columns i and j
 void bigintmat::swap(int i, int j) {
   if ((i <= col) && (j <= col) && (i>0) && (j>0)) {
     number tmp;
@@ -706,41 +712,23 @@ void bigintmat::swaprow(int i, int j) {
 
 int bigintmat::findnonzero(int i)
 {
-  // Setze t2 := 0. Vergleiche jeden Eintrag mit t2. Falls ungleich, gebe Index zurück, sonst teste nächsten.
-  // Wurde der letzte Eintrag getestet und es war immer gleich, gebe 0 zurück.
-  number t1;
-  number t2 = n_Init(0, basecoeffs());
   for (int j=1; j<=col; j++) {
-    t1 = get(i, j);
-    if (!n_Equal(t1, t2, basecoeffs()))
+    if (!n_IsZero(view(i,j), basecoeffs()))
     {
-      n_Delete(&t1, basecoeffs());
-      n_Delete(&t2, basecoeffs());
       return j;
     }
-    n_Delete(&t1, basecoeffs());
   }
-  n_Delete(&t2, basecoeffs());
   return 0;
 }
 
 int bigintmat::findcolnonzero(int j)
 {
-  // Setze t2 := 0. Vergleiche jeden Eintrag mit t2. Falls ungleich, gebe Index zurück, sonst teste nächsten.
-  // Wurde der letzte Eintrag getestet und es war immer gleich, gebe 0 zurück.
-  number t1;
-  number t2 = n_Init(0, basecoeffs());
   for (int i=row; i>=1; i--) {
-    t1 = get(i, j);
-    if (!n_Equal(t1, t2, basecoeffs()))
+    if (!n_IsZero(view(i,j), basecoeffs()))
     {
-      n_Delete(&t1, basecoeffs());
-      n_Delete(&t2, basecoeffs());
       return i;
     }
-    n_Delete(&t1, basecoeffs());
   }
-  n_Delete(&t2, basecoeffs());
   return 0;
 }
 
@@ -766,9 +754,8 @@ void bigintmat::getcol(int j, bigintmat *a)
   }
   number t1;
   for (int i=1; i<=row;i++) {
-    t1 = get(i,j);
+    t1 = view(i,j);
     a->set(i-1,t1);
-    n_Delete(&t1, basecoeffs());
   }
 }
 
@@ -782,7 +769,6 @@ void bigintmat::getColRange(int j, int no, bigintmat *a)
     }
   }
 }
-
 
 void bigintmat::getrow(int i, bigintmat *a)
 {
@@ -839,9 +825,8 @@ void bigintmat::setcol(int j, bigintmat *m)
   }
   number t1;
   for (int i=1; i<=row; i++) {
-      t1 = m->get(i-1);
+      t1 = m->view(i-1);
       set(i, j, t1);
-      n_Delete(&t1, basecoeffs());
   }
 }
 
@@ -868,9 +853,8 @@ void bigintmat::setrow(int j, bigintmat *m) {
   }
   number tmp;
   for (int i=1; i<=col; i++) {
-      tmp = m->get(i-1);
+      tmp = m->view(i-1);
       set(j, i, tmp);
-      n_Delete(&tmp, basecoeffs());
   }
   
 }
@@ -885,18 +869,11 @@ bool bigintmat::add(bigintmat *b)
     Werror("Error in bigintmat::add. coeffs do not agree!");
     return false;
   }
-  bigintmat *sum = bimAdd(this, b);
-  number t1;
-  for (int i=1; i<=row; i++)
-  {
-    for (int j=1; j<=col; j++)
-    {
-      t1 = sum->get(i, j);
-      set(i, j, t1);
-      n_Delete(&t1, basecoeffs());
+  for (int i=1; i<=row; i++) {
+    for (int j=1; j<=col; j++) {
+      rawset(i, j, n_Add(b->view(i,j), view(i,j), basecoeffs()));
     }
   }
-  delete sum;
   return true;
 }
 
@@ -910,18 +887,11 @@ bool bigintmat::sub(bigintmat *b)
     Werror("Error in bigintmat::sub. coeffs do not agree!");
     return false;
   }
-  bigintmat *dif = bimSub(this, b);
-  number t1;
-  for (int i=1; i<=row; i++)
-  {
-    for (int j=1; j<=col; j++)
-    {
-      t1 = dif->get(i, j);
-      set(i, j, t1);
-      n_Delete(&t1, basecoeffs());
+  for (int i=1; i<=row; i++) {
+    for (int j=1; j<=col; j++) {
+      rawset(i, j, n_Sub(view(i,j), b->view(i,j), basecoeffs()));
     }
   }
-  delete dif;
   return true;
 }
 
@@ -939,8 +909,7 @@ bool bigintmat::skalmult(number b, coeffs c)
     {
       t1 = view(i, j);
       t2 = n_Mult(t1, b, basecoeffs());
-      set(i, j, t2);
-      n_Delete(&t2, basecoeffs());
+      rawset(i, j, t2);
     }
   }
   return true;
@@ -959,15 +928,12 @@ bool bigintmat::addcol(int i, int j, number a, coeffs c)
   number t1, t2, t3, t4;
   for (int k=1; k<=row; k++)
   {
-    t1 = get(k, j);
-    t2 = get(k, i);
+    t1 = view(k, j);
+    t2 = view(k, i);
     t3 = n_Mult(t1, a, basecoeffs());
     t4 = n_Add(t3, t2, basecoeffs());
-    set(k, i, t4);
+    rawset(k, i, t4);
     n_Delete(&t3, basecoeffs());
-    n_Delete(&t4, basecoeffs());
-    n_Delete(&t1, basecoeffs());
-    n_Delete(&t2, basecoeffs());
   }
   return true;
 }
@@ -985,15 +951,12 @@ bool bigintmat::addrow(int i, int j, number a, coeffs c)
   number t1, t2, t3, t4;
   for (int k=1; k<=col; k++)
   {
-    t1 = get(j, k);
-    t2 = get(i, k);
+    t1 = view(j, k);
+    t2 = view(i, k);
     t3 = n_Mult(t1, a, basecoeffs());
     t4 = n_Add(t3, t2, basecoeffs());
-    set(i, k, t4);
-    n_Delete(&t1, basecoeffs());
-    n_Delete(&t2, basecoeffs());
+    rawset(i, k, t4);
     n_Delete(&t3, basecoeffs());
-    n_Delete(&t4, basecoeffs());
   }
   return true;
 }
@@ -1002,11 +965,9 @@ void bigintmat::colskalmult(int i, number a, coeffs c) {
   if ((i>=1) && (i<=col) && (nCoeffs_are_equal(c, basecoeffs()))) {
     number t, tmult;
     for (int j=1; j<=row; j++) {
-      t = get(j, i);
+      t = view(j, i);
       tmult = n_Mult(a, t, basecoeffs());
-      set(j, i, tmult);
-      n_Delete(&t, basecoeffs());
-      n_Delete(&tmult, basecoeffs());
+      rawset(j, i, tmult);
     }
   }
   else
@@ -1017,11 +978,9 @@ void bigintmat::rowskalmult(int i, number a, coeffs c) {
   if ((i>=1) && (i<=row) && (nCoeffs_are_equal(c, basecoeffs()))) {
     number t, tmult;
     for (int j=1; j<=col; j++) {
-      t = get(i, j);
+      t = view(i, j);
       tmult = n_Mult(a, t, basecoeffs());
-      set(i, j, tmult);
-      n_Delete(&t, basecoeffs());
-      n_Delete(&tmult, basecoeffs());
+      rawset(i, j, tmult);
     }
   }
   else
@@ -1058,32 +1017,47 @@ void bigintmat::concatrow(bigintmat *a, bigintmat *b) {
   }
 } 
 
+void bigintmat::extendCols(int i) { 
+  bigintmat * tmp = new bigintmat(rows(), i, basecoeffs());
+  appendCol(tmp);
+  delete tmp;
+}
+void bigintmat::appendCol (bigintmat *a) {
+  coeffs R = basecoeffs();
+  int ay = a->cols();
+  int ax = a->rows();
+  assume(row == ax);
+
+  assume(nCoeffs_are_equal(a->basecoeffs(), R));
+
+  bigintmat * tmp = new bigintmat(rows(), cols() + ay, R);
+  tmp->concatcol(this, a);
+  this->swapMatrix(tmp);
+  delete tmp;
+}
+
+
 void bigintmat::concatcol (bigintmat *a, bigintmat *b) {
   int ay = a->cols();
   int ax = a->rows();
   int by = b->cols();
   int bx = b->rows();
   number tmp;
-  if (!((row == ax) && (row == bx) && (ay+by==col))) {
-    Werror("Error in concatcol");
-    return;
-  }
-  if (!(nCoeffs_are_equal(a->basecoeffs(), basecoeffs()) && nCoeffs_are_equal(b->basecoeffs(), basecoeffs()))) {
-    Werror("Error in concatcol. coeffs do not agree!");
-    return;
-  }
+
+  assume(row==ax && row == bx && ay+by ==col);
+
+  assume(nCoeffs_are_equal(a->basecoeffs(), basecoeffs()) && nCoeffs_are_equal(b->basecoeffs(), basecoeffs()));
+
   for (int i=1; i<=ax; i++) {
     for (int j=1; j<=ay; j++) {
-      tmp = a->get(i,j);
+      tmp = a->view(i,j);
       set(i, j, tmp);
-      n_Delete(&tmp, basecoeffs());
     }
   }
   for (int i=1; i<=bx; i++) {
     for (int j=1; j<=by; j++) {
-      tmp = b->get(i,j);
+      tmp = b->view(i,j);
       set(i, j+ay, tmp);
-      n_Delete(&tmp, basecoeffs());
     }
   }
 }
@@ -1139,16 +1113,14 @@ void bigintmat::splitcol(bigintmat *a, bigintmat *b) {
   else {
     for (int i=1; i<=ax; i++) {
       for (int j=1; j<=ay; j++) {
-        tmp = get(i,j);
+        tmp = view(i,j);
         a->set(i,j,tmp);
-        n_Delete(&tmp, basecoeffs());
       }
     }
     for (int i=1; i<=bx; i++) {
       for (int j=1; j<=by; j++) {
-        tmp = get(i,j+ay);
+        tmp = view(i,j+ay);
         b->set(i,j,tmp);
-        n_Delete(&tmp, basecoeffs());
       }
     }
   }
@@ -1291,8 +1263,9 @@ int bigintmat::isZero() {
   }
   return TRUE;
 }
-
-
+//****************************************************************************
+//
+//****************************************************************************
 
 //used in the det function. No idea what it does.
 //looks like it return the submatrix where the i-th row
@@ -1341,7 +1314,7 @@ number bigintmat::pseudoinv(bigintmat *a) {
  if ((n_IsZero(det, basecoeffs())))
     return det;
 
- // Hänge Einheitsmatrix über Matrix und wendet HNF an. An Stelle der Einheitsmatrix steht im Ergebnis die Transormationsmatrix dazu
+ // Hänge Einheitsmatrix über Matrix und wendet HNF an. An Stelle der Einheitsmatrix steht im Ergebnis die Transformationsmatrix dazu
   a->one();
   bigintmat *m = new bigintmat(2*row, col, basecoeffs());
   m->concatrow(a,this);
@@ -1482,31 +1455,6 @@ number bigintmat::hnfdet()
   delete m;
   return prod;
 }
-
-#if 0
-//reduce the row i modulo p, not used
-void bigintmat::rowmod(int i, number p, coeffs c)
-{
-  if ((i>row) || (i<1)) {
-    Werror("Error in addrow: Index out of range!");
-    return;
-  }
-  coeffs coe = numbercoeffs(p, c);
-  nMapFunc f1 = n_SetMap(basecoeffs(), coe);
-  nMapFunc f2 = n_SetMap(coe, basecoeffs());
-  number a;
-  number b;
-  for (int j=1; j<=col; j++) {
-    a = get(i, j);
-    b = f1(a, basecoeffs(), coe);
-    n_Delete(&a, basecoeffs());
-    a = f2(b, coe, basecoeffs());
-    n_Delete(&b, coe);
-    set(i, j, a);
-    n_Delete(&a, basecoeffs());
-  }
-}
-#endif
 
 void bigintmat::swapMatrix(bigintmat *a)
 {
@@ -1756,7 +1704,7 @@ bigintmat * bimChangeCoeff(bigintmat *a, coeffs cnew)
 //OK: a HNF of (this | p*I)
 //so the result will always have FULL rank!!!!
 //(This is different form a lift of the HNF mod p: consider the matrix (p)
-//to see the different. It CAN be computed as HNF mod p^2 usually..)
+//to see the difference. It CAN be computed as HNF mod p^2 usually..)
 bigintmat * bigintmat::modhnf(number p, coeffs R)
 {
   coeffs Rp = numbercoeffs(p, R); // R/pR
@@ -1781,54 +1729,6 @@ bigintmat * bigintmat::modhnf(number p, coeffs R)
   return C;
 }
 
-
-//for p prime: echelon form (gaussian elemination) in Z/pZ
-//should be changed to work over a field and do the coercion
-//elsewhere (in the calling function)
-bigintmat *bigintmat::modgauss(number p, coeffs c) {
-  bigintmat *m = this->inpmod(p, c);
-  number temp, temp2;
-  number inv;
-  int inttemp;
-  for (int i=1; i<=row; i++) {
-    temp = m->get(i,i);
-    inttemp = m->findcolnonzero(i);
-    if (n_IsZero(temp,m->basecoeffs()) && (inttemp > i)) 
-      m->swaprow(i, inttemp);
-    n_Delete(&temp,m->basecoeffs());
-    temp = m->get(i,i);
-    if (!n_IsZero(temp,m->basecoeffs())) {
-      if (!n_IsOne(temp,m->basecoeffs())) {
-        inv = n_Invers(temp, m->basecoeffs());
-        m->rowskalmult(i, inv, m->basecoeffs());
-        n_Delete(&inv, m->basecoeffs());
-      }
-      for (int j=i+1; j<=row; j++) {
-        temp2 = m->get(j,i);
-        temp2 = n_Neg(temp2, m->basecoeffs());
-        m->addrow(j, i, temp2, m->basecoeffs());
-        n_Delete(&temp2, m->basecoeffs());
-      }
-    }
-    n_Delete(&temp, m->basecoeffs());
-  }
-  // Reduzieren der Einträge über den Diagonalen
-  for (int i=row; i>=1; i--) {
-    temp = m->get(i,i);
-    if (!n_IsZero(temp, m->basecoeffs())) {
-      for (int j=i-1; j>=1; j--) {
-        temp2 = m->get(j,i);
-        temp2 = n_Neg(temp2, m->basecoeffs());
-        m->addrow(j, i, temp2, m->basecoeffs());
-        n_Delete(&temp2, m->basecoeffs());
-      }
-    }
-    n_Delete(&temp, m->basecoeffs());
-  }
-  bigintmat * cc = bimChangeCoeff(m, basecoeffs());
-  delete m;
-  return cc;
-}
 
 //exactly divide matrix by b
 void bigintmat::skaldiv(number b)
@@ -1910,14 +1810,6 @@ void bigintmat::mod(number p, coeffs c)
   nKillChar(coe);
 }
 
-//coerce matrix to Z/pZ of type n_Zn
-//NOT inplace! returns a copy
-bigintmat* bigintmat::inpmod(number p, coeffs c)
-{
-  coeffs coe = numbercoeffs(p, c);
-  return bimChangeCoeff(this, coe);
-}
-
 void bimMult(bigintmat *a, bigintmat *b, bigintmat *c)
 {
   if (!nCoeffs_are_equal(a->basecoeffs(), b->basecoeffs())) {
@@ -1979,8 +1871,7 @@ static void reduce_mod_howell(bigintmat *A, bigintmat *b, bigintmat * eps, bigin
       } else if (n_IsZero(Ai, R)) {
         A_col--;
       } else {
-        // solve ax=db, possibly enlarging d
-        // so x = db/a
+        // "solve" ax=b, possibly enlarging d
         number Bj = B->view(j, 1);
         number q = n_IntDiv(Bj, Ai, R);
         x->rawset(x->rows() - B->rows() + j, i, q);
@@ -2085,6 +1976,7 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
             *m = prependIdentity(Ap),
             *Tp, *Hp;
   delete Ap;
+
   m->howell();
   Hp = new bigintmat(A->rows(), A->cols(), Rp);
   Hp->copySubmatInto(m, A->cols()+1, 1, A->rows(), A->cols(), 1, 1);
@@ -2107,7 +1999,7 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
   delete m;
 
   //Hp is the mod-p howell form
-  //Tp the tranformation, mod p
+  //Tp the transformation, mod p
   //kp a basis for the kernel, in howell form, mod p
 
   bigintmat * eps_p = new bigintmat(B->rows(), B->cols(), Rp),
@@ -2143,7 +2035,6 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
 
       return NULL;
     }
-    assume(eps_p->isZero());
     t1 = bimMult(Tp, x_p);
     delete x_p;
     x_p = t1;
@@ -2160,6 +2051,21 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
     delete s;
     x->swapMatrix(t1);
     delete t1;
+  
+    if(kern && i==1) {
+      bigintmat * ker = bimChangeCoeff(kp, R);
+      t1 = bimMult(A, ker);
+      t1->skaldiv(p);
+      t1->skalmult(n_Init(-1, R), R);
+      b->appendCol(t1);
+      delete t1;
+      x->appendCol(ker);
+      delete ker;
+      x_p->extendCols(kp->cols());
+      eps_p->extendCols(kp->cols());
+      fps_p->extendCols(kp->cols());
+    }
+
     n_InpMult(pp, p, R);
 
     if (b->isZero()) {
@@ -2183,11 +2089,23 @@ static number solveAx_dixon(bigintmat *A, bigintmat *B, bigintmat *x, bigintmat 
         bigintmat *c = bimMult(A, y);
         bigintmat *bd = new bigintmat(B);
         bd->skalmult(d, R);
+        if (kern) {
+          bd->extendCols(kp->cols());
+        }
         if (*c == *bd) {
           x->swapMatrix(y);
           delete y;
-
           delete c;
+          if (kern) {
+            y = new bigintmat(x->rows(), B->cols(), R);
+            c = new bigintmat(x->rows(), kp->cols(), R);
+            x->splitcol(y, c);
+            x->swapMatrix(y);
+            delete y;
+            kern->swapMatrix(c);
+            delete c;
+          }
+          
           delete bd;
 
           delete eps_p;
@@ -2478,6 +2396,7 @@ void diagonalForm(bigintmat *A, bigintmat ** S, bigintmat ** T)
 
 //a "q-base" for the kernel of a.
 //Should be re-done to use Howell rather than smith.
+//can be done using solveAx now.
 int kernbase (bigintmat *a, bigintmat *c, number p, coeffs q) {
 #if 0
   Print("Kernel of ");

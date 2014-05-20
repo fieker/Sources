@@ -1765,7 +1765,6 @@ bigintmat * bigintmat::modhnf(number p, coeffs R)
   bigintmat *a = bimChangeCoeff(m, R); 
   delete m;
   bigintmat *C = new bigintmat(rows(), rows(), R);
-  a->Print();
   int piv = rows(), i = a->cols();
   while (piv) {
     if (!i || n_IsZero(a->view(piv, i), R)) {
@@ -1776,7 +1775,6 @@ bigintmat * bigintmat::modhnf(number p, coeffs R)
     }
     piv--;
   }
-  C->Print();
   delete a;
   return C;
 }

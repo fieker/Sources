@@ -13,7 +13,6 @@
 #include <omalloc/omalloc.h>
 #include <stdlib.h>
 #include <kernel/GBEngine/kutil.h>
-#include <kernel/febase.h>
 #include <kernel/polys.h>
 static const int bundle_size=100;
 
@@ -894,7 +893,7 @@ void tgb_sparse_matrix::row_content(int row)
     {
       while (p!=NULL)
       {
-        d = nIntDiv(p->coef,h);
+        d = nExactDiv(p->coef,h);
         nDelete(&p->coef);
         p->coef=d;
         p=p->next;

@@ -13,7 +13,6 @@
 #include <misc/options.h>
 #include <omalloc/omalloc.h>
 #include <kernel/polys.h>
-#include <kernel/febase.h>
 #include <kernel/GBEngine/kstd1.h>
 #include <kernel/GBEngine/kutil.h>
 #include <kernel/GBEngine/stairc.h>
@@ -26,7 +25,6 @@
 #include <kernel/GBEngine/syz.h>
 #include <polys/kbuckets.h>
 #include <polys/prCopy.h>
-#include <kernel/timer.h>
 #include <polys/matpol.h>
 
 //#define SHOW_PROT
@@ -1853,7 +1851,7 @@ syStrategy syKosz(ideal arg,int * length)
   {
     if (temp->m[i]!=NULL)
     {
-      new_generators->m[0] = kNF(syzstr->res[0],currQuotient,temp->m[i]);
+      new_generators->m[0] = kNF(syzstr->res[0],currRing->qideal,temp->m[i]);
       if (!nIsOne(pGetCoeff(new_generators->m[0])))
         pNorm(new_generators->m[0]);
       next_deg = p_FDeg(new_generators->m[0],currRing);

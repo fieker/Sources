@@ -21,6 +21,7 @@
 #include <coeffs/longrat.h>
 #include <coeffs/mpr_complex.h>
 #include <coeffs/rintegers.h>
+#include <coeffs/rmodulon.h>
 #include "si_gmp.h"
 
 /// Our Type!
@@ -1043,6 +1044,18 @@ static void nrzMPZ(mpz_t res, number &a, const coeffs)
     mpz_init_set_si(res, SR_TO_INT(a));
   else
     mpz_init_set(res, (int_number) a);
+
+coeffs nrzQuot1(number c, const coeffs r)
+{
+    int ch = r->cfInt(c, r);
+    int_number dummy;
+    dummy = (int_number) omAlloc(sizeof(mpz_t));
+    mpz_init_set_ui(dummy, ch);
+    ZnmInfo info;
+    info.base = dummy;
+    info.exp = (unsigned long) 1;
+    coeffs rr = nInitChar(n_Zn, (void*)&info);
+    return(rr);
 }
 
 BOOLEAN nrzInitChar(coeffs r,  void *)
@@ -1094,6 +1107,7 @@ BOOLEAN nrzInitChar(coeffs r,  void *)
   r->cfMPZ = nrzMPZ;
   r->cfFarey = nrzFarey;
 
+  r->cfQuot1 = nrzQuot1;
   // debug stuff
 
 #ifdef LDEBUG

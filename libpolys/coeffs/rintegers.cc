@@ -873,8 +873,10 @@ number nrzMapZp(number from, const coeffs /*src*/, const coeffs /*dst*/)
   return nrz_short((number) erg);
 }
 
-number nrzMapQ(number from, const coeffs src, const coeffs /*dst*/)
+number nrzMapQ(number from, const coeffs src, const coeffs dst)
 {
+  if (src==dst) /* will happen if bigint_coeffs is rintegers */
+    return nrzCopy(from, src);
   int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
   mpz_init(erg);
   nlGMP(from, (number) erg, src);

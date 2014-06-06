@@ -575,9 +575,7 @@ number multring(bigintmat *nbase, nforder *o, number p) {
     lon->concatcol(oldlon, mm);
     delete oldlon;
   }
- 
-  PrintS("before division\n");
-  lon->Print();
+  
   lon->skaldiv(divi);
 
   bigintmat * red;

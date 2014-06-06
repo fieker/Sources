@@ -1,5 +1,5 @@
 #include "kernel/mod2.h" // general settings/macros
-//#include"kernel/febase.h"  // for Print, WerrorS
+#include"kernel/febase.h"  // for Print, WerrorS
 #include"Singular/ipid.h" // for SModulFunctions, leftv
 #include"Singular/number2.h" // for SModulFunctions, leftv
 #include"libpolys/coeffs/numbers.h" // nRegister, coeffs.h
@@ -243,7 +243,7 @@ BOOLEAN n_nfOrderInit(coeffs r,  void * parameter)
   r->cfSize = EltSize;
   r->cfInt = EltInt;
   r->cfMPZ = EltMPZ;
-  r->cfInpNeg = EltNeg;
+  r->cfNeg = EltNeg;
   r->cfInvers = EltInvers;
   r->cfCopy = EltCopy;
   r->data = parameter;

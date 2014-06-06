@@ -115,8 +115,6 @@ coeffs nrnQuot1(number c, const coeffs r)
     return(rr);
 }
 
-static number nrnAnn(number b, const coeffs r);
-
 /* for initializing function pointers */
 BOOLEAN nrnInitChar (coeffs r, void* p)
 {
@@ -684,13 +682,6 @@ number nrnQuotRem(number a, number b, number  * rem, const coeffs r)
   mpz_clear(aa);
   mpz_clear(bb);
   return (number) qq;
-}
-static number nrnAnn(number b, const coeffs r)
-{
-  int_number erg = (int_number)omAllocBin(gmp_nrz_bin);
-  mpz_init(erg);
-  mpz_tdiv_q(erg, (int_number)r->modNumber, (int_number)b);
-  return (number)erg;
 }
 
 /*

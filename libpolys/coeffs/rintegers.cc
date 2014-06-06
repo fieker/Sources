@@ -1044,6 +1044,7 @@ static void nrzMPZ(mpz_t res, number &a, const coeffs)
     mpz_init_set_si(res, SR_TO_INT(a));
   else
     mpz_init_set(res, (int_number) a);
+}
 
 coeffs nrzQuot1(number c, const coeffs r)
 {

@@ -903,6 +903,7 @@ bool bigintmat::skalmult(number b, coeffs c)
     return false;
   }
   number t1, t2;
+  if ( n_IsOne(b,basecoeffs)) return;
   for (int i=1; i<=row; i++)
   {
     for (int j=1; j<=col; j++)

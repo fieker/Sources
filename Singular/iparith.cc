@@ -3656,7 +3656,7 @@ static BOOLEAN jjPLUSPLUS(leftv, leftv u)
 static BOOLEAN jjUMINUS_BI(leftv res, leftv u)
 {
   number n=(number)u->CopyD(BIGINT_CMD);
-  n=n_Neg(n,coeffs_BIGINT);
+  n=n_InpNeg(n,coeffs_BIGINT);
   res->data = (char *)n;
   return FALSE;
 }
@@ -3668,7 +3668,7 @@ static BOOLEAN jjUMINUS_I(leftv res, leftv u)
 static BOOLEAN jjUMINUS_N(leftv res, leftv u)
 {
   number n=(number)u->CopyD(NUMBER_CMD);
-  n=nNeg(n);
+  n=nInpNeg(n);
   res->data = (char *)n;
   return FALSE;
 }
@@ -7989,7 +7989,7 @@ BOOLEAN iiExprArith2(leftv res, leftv a, int op, leftv b, BOOLEAN proccall)
             }
             if (traceit&TRACE_CALL)
               Print("call %s(%s,%s)\n",iiTwoOps(op),
-              Tok2Cmdname(an->rtyp),Tok2Cmdname(bn->rtyp));
+              Tok2Cmdname(dArith2[i].arg1),Tok2Cmdname(dArith2[i].arg2));
             failed= ((iiConvert(at,dArith2[i].arg1,ai,a,an))
             || (iiConvert(bt,dArith2[i].arg2,bi,b,bn))
             || (call_failed=dArith2[i].p(res,an,bn)));
@@ -8174,6 +8174,8 @@ BOOLEAN iiExprArith1(leftv res, leftv a, int op)
             failed= iiConvert(at,dArith1[i].arg,ai,a,an);
             if (!failed)
             {
+              if (traceit&TRACE_CALL)
+                Print("call %s(%s)\n",iiTwoOps(op),Tok2Cmdname(dArith1[i].arg));
               #ifdef PROC_BUG
               dArith1[i].p(res,a);
               #else
@@ -8194,8 +8196,6 @@ BOOLEAN iiExprArith1(leftv res, leftv a, int op)
           }
           else
           {
-            if (traceit&TRACE_CALL)
-              Print("call %s(%s)\n",iiTwoOps(op),Tok2Cmdname(an->rtyp));
             if (an->Next() != NULL)
             {
               res->next = (leftv)omAllocBin(sleftv_bin);
@@ -8344,8 +8344,8 @@ BOOLEAN iiExprArith3(leftv res, int op, leftv a, leftv b, leftv c)
               }
               if (traceit&TRACE_CALL)
                 Print("call %s(%s,%s,%s)\n",
-                  iiTwoOps(op),Tok2Cmdname(an->rtyp),
-                  Tok2Cmdname(bn->rtyp),Tok2Cmdname(cn->rtyp));
+                  iiTwoOps(op),Tok2Cmdname(dArith3[i].arg1),
+                  Tok2Cmdname(dArith3[i].arg2),Tok2Cmdname(dArith3[i].arg3));
               failed= ((iiConvert(at,dArith3[i].arg1,ai,a,an))
                 || (iiConvert(bt,dArith3[i].arg2,bi,b,bn))
                 || (iiConvert(ct,dArith3[i].arg3,ci,c,cn))

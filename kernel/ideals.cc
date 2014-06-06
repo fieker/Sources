@@ -9,8 +9,6 @@
 
 #include <kernel/mod2.h>
 
-#include "mod2.h"
-
 #include <omalloc/omalloc.h>
 
 #ifndef SING_NDEBUG
@@ -932,7 +930,7 @@ static void idPrepareStd(ideal s_temp, int k)
     {
       p = s_temp->m[j];
       q = pOne();
-      //pGetCoeff(q)=nNeg(pGetCoeff(q));   //set q to -1
+      //pGetCoeff(q)=nInpNeg(pGetCoeff(q));   //set q to -1
       pSetComp(q,k+1+j);
       pSetmComp(q);
       while (pNext(p)) pIter(p);

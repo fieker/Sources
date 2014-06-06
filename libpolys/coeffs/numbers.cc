@@ -432,10 +432,8 @@ coeffs nInitChar(n_coeffType t, void * parameter)
     //assume(n->cfIsUnit!=NULL);
     //assume(n->cfGetUnit!=NULL);
     //assume(n->cfExtGcd!=NULL);
-    assume(n->cfNeg!=NULL);
+    assume(n->cfInpNeg!=NULL);
     assume(n->cfCopy!=NULL);
-    assume(n->cfRePart!=NULL);
-    assume(n->cfImPart!=NULL);
 
     assume(n->cfWriteLong!=NULL);
     assume(n->cfWriteShort!=NULL);

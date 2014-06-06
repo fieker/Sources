@@ -25,7 +25,7 @@
 #include "cf_assert.h"
 #include "debug.h"
 
-#include "algext.h"
+#include "cfGcdAlgExt.h"
 #include "cf_generator.h"
 #include "cf_iter.h"
 #include "cf_util.h"
@@ -196,93 +196,111 @@ resultante (const CanonicalForm & f, const CanonicalForm& g, const Variable & v)
   return result;
 }
 
-// Trager's square free norm algorithm:
-// f a separable polynomial over K (alpha),
-// alpha is defined by the minimal polynomial Palpha
-// K need to contain more than S elements (S is defined in Messollen's thesis;
-// see also getDegOfExt)
+/// compute the norm R of f over PPalpha, g= f (x-s*alpha)
+/// if proof==true, R is squarefree and if in addition getCharacteristic() > 0
+/// the squarefree factors of R are returned.
+/// Based on Trager's sqrf_norm algorithm.
 static CFFList
-sqrf_norm_sub (const CanonicalForm & f, const CanonicalForm & PPalpha,
-               CFGenerator & myrandom, CanonicalForm & s,  CanonicalForm & g,
-               CanonicalForm & R)
+norm (const CanonicalForm & f, const CanonicalForm & PPalpha,
+      CFGenerator & myrandom, CanonicalForm & s, CanonicalForm & g,
+      CanonicalForm & R, bool proof)
 {
-  Variable y= PPalpha.mvar(),vf= f.mvar();
+  Variable y= PPalpha.mvar(), vf= f.mvar();
   CanonicalForm temp, Palpha= PPalpha, t;
   int sqfreetest= 0;
   CFFList testlist;
   CFFListIterator i;
 
-  myrandom.reset();
-  s= myrandom.item();
-  g= f;
-  R= CanonicalForm(0);
+  if (proof)
+  {
+    myrandom.reset();
+    s= myrandom.item();
+    g= f;
+    R= CanonicalForm(0);
+  }
+  else
+  {
+    if (getCharacteristic() == 0)
+      t= CanonicalForm (mapinto (myrandom.item()));
+    else
+      t= CanonicalForm (myrandom.item());
+    s= t;
+    g= f (vf - t*Palpha.mvar(), vf);
+  }
 
   // Norm, resultante taken with respect to y
   while (!sqfreetest)
   {
-    R= resultante(Palpha, g, y);
+    R= resultante (Palpha, g, y);
     R= R* bCommonDen(R);
     R /= content (R);
-    // sqfree check ; R is a polynomial in K[x]
-    if (getCharacteristic() == 0)
+    if (proof)
     {
-      temp= gcd (R, R.deriv(vf));
-      if (degree(temp,vf) != 0 || temp == temp.genZero() )
-        sqfreetest= 0;
-      else
-        sqfreetest= 1;
-    }
-    else
-    {
-      Variable X;
-      testlist= sqrFree (R);
-
-      if (testlist.getFirst().factor().inCoeffDomain())
-        testlist.removeFirst();
-      sqfreetest= 1;
-      for (i= testlist; i.hasItem(); i++)
+      // sqfree check ; R is a polynomial in K[x]
+      if (getCharacteristic() == 0)
       {
-        if (i.getItem().exp() > 1 && degree (i.getItem().factor(),R.mvar()) > 0)
-        {
+        temp= gcd (R, R.deriv (vf));
+        if (degree(temp,vf) != 0 || temp == temp.genZero())
           sqfreetest= 0;
-          break;
+        else
+          sqfreetest= 1;
+      }
+      else
+      {
+        Variable X;
+        testlist= sqrFree (R);
+
+        if (testlist.getFirst().factor().inCoeffDomain())
+          testlist.removeFirst();
+        sqfreetest= 1;
+        for (i= testlist; i.hasItem(); i++)
+        {
+          if (i.getItem().exp() > 1 && degree (i.getItem().factor(),R.mvar()) > 0)
+          {
+            sqfreetest= 0;
+            break;
+          }
         }
       }
+      if (!sqfreetest)
+      {
+        myrandom.next();
+        if (getCharacteristic() == 0)
+          t= CanonicalForm (mapinto (myrandom.item()));
+        else
+          t= CanonicalForm (myrandom.item());
+        s= t;
+        g= f (vf - t*Palpha.mvar(), vf);
+      }
     }
-    if (!sqfreetest)
-    {
-      myrandom.next();
-      if (getCharacteristic() == 0)
-        t= CanonicalForm (mapinto (myrandom.item()));
-      else
-        t= CanonicalForm (myrandom.item());
-      s= t;
-      g= f (f.mvar() - t*Palpha.mvar(), f.mvar());
-    }
+    else
+      break;
   }
   return testlist;
 }
 
+/// see @a norm, R is guaranteed to be squarefree
+/// Based on Trager's sqrf_norm algorithm.
 static CFFList
-sqrf_norm( const CanonicalForm & f, const CanonicalForm & PPalpha,
-           const Variable & Extension, CanonicalForm & s,  CanonicalForm & g,
-           CanonicalForm & R)
+sqrfNorm (const CanonicalForm & f, const CanonicalForm & PPalpha,
+          const Variable & Extension, CanonicalForm & s,  CanonicalForm & g,
+          CanonicalForm & R)
 {
   CFFList result;
   if (getCharacteristic() == 0)
   {
     IntGenerator myrandom;
-    result= sqrf_norm_sub (f, PPalpha, myrandom, s, g, R);
+    result= norm (f, PPalpha, myrandom, s, g, R, true);
   }
   else if (degree (Extension) > 0)
   {
     AlgExtGenerator myrandom (Extension);
-    result= sqrf_norm_sub (f, PPalpha, myrandom, s, g, R);
+    result= norm (f, PPalpha, myrandom, s, g, R, true);
   }
   else
   {
     FFGenerator myrandom;
-    result= sqrf_norm_sub (f, PPalpha, myrandom, s, g, R);
+    result= norm (f, PPalpha, myrandom, s, g, R, true);
   }
   return result;
 }
@@ -322,7 +340,7 @@ simpleExtension (CFList& backSubst, const CFList & Astar,
         On (SW_RATIONAL);
       oldR= R;
       //TODO normalize i.getItem over K(R)?
-      (void) sqrf_norm (i.getItem(), R, Extension, s, g, R);
+      (void) sqrfNorm (i.getItem(), R, Extension, s, g, R);
 
       backSubst.insert (s);
 
@@ -411,7 +429,7 @@ Trager (const CanonicalForm & F, const CFList & Astar,
         const Variable & vminpoly, const CFList & as, bool isFunctionField)
 {
   bool isRat= isOn (SW_RATIONAL);
-  CFFList L, sqrfFactors, Factorlist, tmp;
+  CFFList L, normFactors, tmp;
   CFFListIterator iter, iter2;
   CanonicalForm R, Rstar, s, g, h, f= F;
   CFList substlist, backSubsts;
@@ -429,9 +447,9 @@ Trager (const CanonicalForm & F, const CFList & Astar,
 
     if (!isRat && getCharacteristic() == 0)
       On (SW_RATIONAL);
-    Factorlist= factorize (g, alpha);
+    tmp= factorize (g, alpha); // factorization over number field
 
-    for (iter= Factorlist; iter.hasItem(); iter++)
+    for (iter= tmp; iter.hasItem(); iter++)
     {
       h= iter.getItem().factor();
       if (!h.inCoeffDomain())
@@ -472,159 +490,140 @@ Trager (const CanonicalForm & F, const CFList & Astar,
     return CFFList (CFFactor (f, 1));
   }
 
-  sqrfFactors= sqrf_norm (f, Rstar, vminpoly, s, g, R);
+  CFGenerator * Gen;
+  if (getCharacteristic() == 0)
+    Gen= CFGenFactory::generate();
+  else if (degree (vminpoly) > 0)
+    Gen= AlgExtGenerator (vminpoly).clone();
+  else
+    Gen= CFGenFactory::generate();
 
-  if (getCharacteristic() > 0)
+  CFFList LL= CFFList (CFFactor (f, 1));
+
+  Variable X;
+  do
   {
-    if (sqrfFactors.getFirst().factor().inCoeffDomain())
-      sqrfFactors.removeFirst();
-
-    Variable X;
-    for (iter= sqrfFactors; iter.hasItem(); iter++)
+    tmp= CFFList();
+    for (iter= LL; iter.hasItem(); iter++)
     {
-      if (hasFirstAlgVar (iter.getItem().factor(), X))
+      f= iter.getItem().factor();
+      (void) norm (f, Rstar, *Gen, s, g, R, false);
+
+      if (hasFirstAlgVar (R, X))
+        normFactors= factorize (R, X);
+      else
+        normFactors= factorize (R);
+
+      if (normFactors.getFirst().factor().inCoeffDomain())
+        normFactors.removeFirst();
+      if (normFactors.length() == 1 && normFactors.getLast().exp() == 1)
       {
-        // factorize over alg.extension with X
-        tmp= factorize (iter.getItem().factor(), X);
+        f= backSubst (f, backSubsts, Astar);
+        f *= bCommonDen (f);
+        f= Prem (f, as);
+        f /= vcontent (f, as.getFirst().mvar());
+
+        L.append (CFFactor (f, 1));
+        break;
       }
       else
       {
-        // factorize over k
-        tmp= factorize (iter.getItem().factor(), true);
+        g= f;
+        int count= 0;
+        for (iter2= normFactors; iter2.hasItem(); iter2++)
+        {
+          CanonicalForm fnew= iter2.getItem().factor();
+          if (fnew.level() <= Rstar.level()) //factor is a constant from the function field
+            continue;
+          else
+          {
+            fnew= fnew (g.mvar() + s*Rstar.mvar(), g.mvar());
+            fnew= reduce (fnew, Rstar);
+          }
+
+          h= alg_gcd (g, fnew, Rstarlist);
+          numinv= QuasiInverse (Rstar, alg_LC (h, algExtLevel), Rstar.mvar());
+          h *= numinv;
+          h= Prem (h, Rstarlist);
+          h /= vcontent (h, Rstar.mvar());
+
+          if (h.level() > Rstar.level())
+          {
+            g= divide (g, h, Rstarlist);
+            if (degree (h) == 1 || iter2.getItem().exp() == 1)
+            {
+              h= backSubst (h, backSubsts, Astar);
+              h= Prem (h, as);
+              h *= bCommonDen (h);
+              h /= vcontent (h, as.getFirst().mvar());
+              L.append (CFFactor (h, 1));
+            }
+            else
+              tmp.append (CFFactor (h, iter2.getItem().exp()));
+          }
+          count++;
+          if (g.level() <= Rstar.level())
+            break;
+          if (count == normFactors.length() - 1)
+          {
+            if (normFactors.getLast().exp() == 1 && g.level() > Rstar.level())
+            {
+              g= backSubst (g, backSubsts, Astar);
+              g= Prem (g, as);
+              g *= bCommonDen (g);
+              g /= vcontent (g, as.getFirst().mvar());
+              L.append (CFFactor (g, 1));
+            }
+            else if (normFactors.getLast().exp() > 1 &&
+                     g.level() > Rstar.level())
+            {
+              g /= vcontent (g, Rstar.mvar());
+              tmp.append (CFFactor (g, normFactors.getLast().exp()));
+            }
+            break;
+          }
+        }
       }
-      if (tmp.getFirst().factor().inCoeffDomain())
-        tmp.removeFirst();
-      for (iter2= tmp; iter2.hasItem(); iter2++)
-        Factorlist= append (Factorlist, iter2.getItem());
     }
+    LL= tmp;
+    (*Gen).next();
   }
-  else
-    Factorlist= factorize (R, true);
-
-  if (!Factorlist.getFirst().factor().inCoeffDomain())
-    Factorlist.insert (CFFactor (1, 1));
-  if (Factorlist.length() == 2 && Factorlist.getLast().exp() == 1)
-  {
-    f= backSubst (f, backSubsts, Astar);
-    f *= bCommonDen (f);
-    f= Prem (f, as);
-    f /= vcontent (f, as.getFirst().mvar());
-
-    L.append(CFFactor(f,1));
-  }
-  else
-  {
-    g= f;
-    for (iter= Factorlist; iter.hasItem(); iter++)
-    {
-      CanonicalForm fnew= iter.getItem().factor();
-      if (fnew.level() < Rstar.level()) //factor is a constant from the function field
-        continue;
-      else
-      {
-        fnew= fnew (g.mvar() + s*Rstar.mvar(), g.mvar());
-        fnew= reduce (fnew, Rstar);
-      }
-
-      h= alg_gcd (g, fnew, Rstarlist);
-      numinv= QuasiInverse (Rstar, alg_LC (h, algExtLevel), Rstar.mvar());
-      h *= numinv;
-      h= Prem (h, Rstarlist);
-      h /= vcontent (h, Rstar.mvar());
-
-      if (h.level() >= Rstar.level())
-      {
-        g= divide (g, h, Rstarlist);
-        h= backSubst (h, backSubsts, Astar);
-        h= Prem (h, as);
-        h *= bCommonDen (h);
-        h /= vcontent (h, as.getFirst().mvar());
-        L.append (CFFactor (h, 1));
-      }
-    }
-    // we are not interested in a
-    // constant (over K_r, which can be a polynomial!)
-    if (degree (g, f.mvar()) > 0)
-      L.append (CFFactor (g, 1));
-  }
-  CFFList LL;
-  if (getCharacteristic() > 0) //do I really need this part?
-  {
-    CFFListIterator i=L;
-    CanonicalForm c_fac=1;
-    CanonicalForm c;
-    for(;i.hasItem(); i++ )
-    {
-      CanonicalForm ff=i.getItem().factor();
-      c=alg_lc(ff);
-      int e=i.getItem().exp();
-      ff/=c;
-      if (!ff.isOne()) LL.append(CFFactor(ff,e));
-      while (e>0) { c_fac*=c;e--; }
-    }
-    if (!c_fac.isOne()) LL.insert(CFFactor(c_fac,1));
-  }
-  else
-  {
-    LL=L;
-  }
+  while (!LL.isEmpty());
 
   if (!isRat && getCharacteristic() == 0)
     Off (SW_RATIONAL);
 
-  return LL;
+  delete Gen;
+
+  return L;
 }
 
-/// algorithm of A. Steel described in "Conquering Inseparability: Primary
-/// decomposition and multivariate factorization over algebraic function fields
-/// of positive characteristic" with the following modifications: we use
-/// characteristic sets in IdealOverSubfield and Trager's primitive element
-/// algorithm instead of FGLM
-CFFList
-SteelTrager (const CanonicalForm & f, const CFList & AS)
+
+/// map elements in @a AS into a PIE \f$ L \f$ and record where the variables
+/// are mapped to in @a varsMapLevel, i.e @a varsMapLevel contains a list of
+/// pairs of variables \f$ v_i \f$ and integers \f$ e_i \f$ such that
+/// \f$ L=K(\sqrt[p^{e_1}]{v_1}, \ldots, \sqrt[p^{e_n}]{v_n}) \f$
+CFList
+mapIntoPIE (CFFList& varsMapLevel, CanonicalForm& lcmVars, const CFList & AS)
 {
-  CanonicalForm F= f, lcmVars= 1;
+  CanonicalForm varsG;
+  int j, exp= 0, tmpExp;
+  bool recurse= false;
   CFList asnew, as= AS;
-  CFListIterator i, ii;
-
-  bool derivZeroF= false;
-  int j, exp=0, expF= 0, tmpExp;
-  CFFList varsMapLevel;
+  CFListIterator i= as, ii;
+  CFFList varsGMapLevel, tmp;
   CFFListIterator iter;
-
-  // check if F is separable
-  if (F.deriv().isZero())
-  {
-    derivZeroF= true;
-    deflateDegree (F, expF, F.level());
-  }
-
-  CanonicalForm varsF= getVars (F);
-  varsF /= F.mvar();
-
-  lcmVars= lcm (varsF, lcmVars);
-
-  if (derivZeroF)
-    as.append (F);
-
-  CFFList varsGMapLevel;
-  CFFList tmp;
   CFFList * varsGMap= new CFFList [as.length()];
   for (j= 0; j < as.length(); j++)
     varsGMap[j]= CFFList();
-
-  CanonicalForm varsG;
   j= 0;
-  bool recurse= false;
-  i= as;
-  // make minimal polys and F separable
   while (i.hasItem())
   {
     if (i.getItem().deriv() == 0)
     {
       deflateDegree (i.getItem(), exp, i.getItem().level());
       i.getItem()= deflatePoly (i.getItem(), exp, i.getItem().level());
-     
+
       varsG= getVars (i.getItem());
       varsG /= i.getItem().mvar();
 
@@ -726,7 +725,6 @@ SteelTrager (const CanonicalForm & f, const CFList & AS)
     lcmVars /= lcmVars.mvar();
   }
 
-  // compute how to map variables in F
   for (j= 0; j < as.length(); j++)
   {
     if (varsGMap[j].isEmpty())
@@ -747,9 +745,45 @@ SteelTrager (const CanonicalForm & f, const CFList & AS)
 
   delete [] varsGMap;
 
+  return asnew;
+}
+
+/// algorithm of A. Steel described in "Conquering Inseparability: Primary
+/// decomposition and multivariate factorization over algebraic function fields
+/// of positive characteristic" with the following modifications: we use
+/// characteristic sets in IdealOverSubfield and Trager's primitive element
+/// algorithm instead of FGLM
+CFFList
+SteelTrager (const CanonicalForm & f, const CFList & AS)
+{
+  CanonicalForm F= f, lcmVars= 1;
+  CFList asnew, as= AS;
+  CFListIterator i, ii;
+
+  bool derivZeroF= false;
+  int j, expF= 0, tmpExp;
+  CFFList varsMapLevel, tmp;
+  CFFListIterator iter;
+
+  // check if F is separable
+  if (F.deriv().isZero())
+  {
+    derivZeroF= true;
+    deflateDegree (F, expF, F.level());
+  }
+
+  CanonicalForm varsF= getVars (F);
+  varsF /= F.mvar();
+
+  lcmVars= lcm (varsF, lcmVars);
+
+  if (derivZeroF)
+    as.append (F);
+
+  asnew= mapIntoPIE (varsMapLevel, lcmVars, as);
+
   if (derivZeroF)
   {
-    as.removeLast();
     asnew.removeLast();
     F= deflatePoly (F, expF, F.level());
   }
@@ -809,20 +843,40 @@ SteelTrager (const CanonicalForm & f, const CFList & AS)
   CFFList result;
   CFList transform;
 
+  bool found;
   for (iter= tmp; iter.hasItem(); iter++)
   {
+    found= false;
     transform= transBack;
     CanonicalForm factor= iter.getItem().factor();
     factor= M (factor);
     transform.append (factor);
-    transform= charSetViaModCharSet (transform, false);
+    transform= modCharSet (transform, false);
+
+retry:
+    if (transform.isEmpty())
+    {
+      transform= transBack;
+      transform.append (factor);
+      transform= charSetViaCharSetN (transform);
+    }
     for (i= transform; i.hasItem(); i++)
     {
       if (degree (i.getItem(), f.mvar()) > 0)
       {
+        if (i.getItem().level() > f.level())
+          break;
+        found= true;
         factor= i.getItem();
         break;
       }
+    }
+
+    if (!found)
+    {
+      found= false;
+      transform= CFList();
+      goto retry;
     }
 
     factor /= content (factor);

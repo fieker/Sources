@@ -6,6 +6,7 @@ algebralib
 alias
 allres_s
 arcAtPoint
+assprimeszerodim_s
 barei_s
 betti_s
 bug_1
@@ -217,7 +218,7 @@ Katsura_5_32003_lp_slimgb
 Katsura_6_32003_lp_slimgb
 minor_s
 modular_s
-modstd
+modstd_s
 modulo_s
 monodromy_s
 monomial_s

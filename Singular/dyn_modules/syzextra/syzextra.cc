@@ -65,22 +65,20 @@ BEGIN_NAMESPACE_SINGULARXX     BEGIN_NAMESPACE(SYZEXTRA)
 
 BEGIN_NAMESPACE(SORT_c_ds)
 
-
-#ifdef _GNU_SOURCE
-static int cmp_c_ds(const void *p1, const void *p2, void *R)
-{
+#if (defined __APPLE__ || defined __MACH__ || defined __DARWIN__ || defined __FREEBSD__ || defined __BSD__ || defined OpenBSD3_1 || defined OpenBSD3_9)
+static int cmp_c_ds(void *R, const void *p1, const void *p2){
+#elif (defined _GNU_SOURCE || defined __GNU__ || defined __linux__)
+static int cmp_c_ds(const void *p1, const void *p2, void *R){
 #else
-static int cmp_c_ds(const void *p1, const void *p2)
-{
-  void *R = currRing;
+static int cmp_c_ds(const void *p1, const void *p2){ void *R = currRing;
 #endif
-
+  assume(R != NULL);
   const int YES = 1;
   const int NO = -1;
 
   const ring r =  (const ring) R; // TODO/NOTE: the structure is known: C, lp!!!
 
-  assume( r == currRing );
+  assume( r == currRing ); // for now...
 
   const poly a = *(const poly*)p1;
   const poly b = *(const poly*)p2;
@@ -153,7 +151,7 @@ static int cmp_c_ds(const void *p1, const void *p2)
   return 0;
 }
 
-
+/*
 static int cmp_poly(const poly &a, const poly &b)
 {
   const int YES = 1;
@@ -199,6 +197,7 @@ static int cmp_poly(const poly &a, const poly &b)
 
   return 0;
 }
+*/
 
 END_NAMESPACE
 /* namespace SORT_c_ds */
@@ -389,10 +388,12 @@ void Sort_c_ds(const ideal id, const ring r)
 {
   const int sizeNew = IDELEMS(id);
 
-#ifdef _GNU_SOURCE
+#if (defined __APPLE__ || defined __MACH__ || defined __DARWIN__ || defined __FREEBSD__ || defined __BSD__ || defined OpenBSD3_1 || defined OpenBSD3_9)
+#define qsort_my(m, s, ss, r, cmp) qsort_r(m, s, ss, r, cmp)
+#elif (defined _GNU_SOURCE || defined __GNU__ || defined __linux__)
 #define qsort_my(m, s, ss, r, cmp) qsort_r(m, s, ss, cmp, r)
 #else
-#define qsort_my(m, s, ss, r, cmp) qsort_r(m, s, ss, cmp)
+#define qsort_my(m, s, ss, r, cmp) qsort(m, s, ss, cmp)
 #endif
 
   if( sizeNew >= 2 )
@@ -825,7 +826,7 @@ ideal SchreyerSyzygyComputation::Compute2LeadingSyzygyTerms()
       number g = n_Lcm( lc1, lc2, r );
 
       p_SetCoeff0(m ,       n_Div(g, lc1, r), r);
-      p_SetCoeff0(mm, n_Neg(n_Div(g, lc2, r), r), r);
+      p_SetCoeff0(mm, n_InpNeg(n_Div(g, lc2, r), r), r);
 
       n_Delete(&g, r);
 
@@ -2072,7 +2073,7 @@ poly CReducerFinder::FindReducer(const poly multiplier, const poly t,
     }
 
     number n = n_Mult( p_GetCoeff(multiplier, r), p_GetCoeff(t, r), r);
-    p_SetCoeff0(q, n_Neg( n_Div(n, p_GetCoeff(p, r), r), r), r);
+    p_SetCoeff0(q, n_InpNeg( n_Div(n, p_GetCoeff(p, r), r), r), r);
     n_Delete(&n, r);
 
     return q;
@@ -2156,7 +2157,7 @@ poly CReducerFinder::FindReducer(const poly multiplier, const poly t,
     }
 
     number n = n_Mult( p_GetCoeff(multiplier, r), p_GetCoeff(t, r), r);
-    p_SetCoeff0(q, n_Neg( n_Div(n, p_GetCoeff(p, r), r), r), r);
+    p_SetCoeff0(q, n_InpNeg( n_Div(n, p_GetCoeff(p, r), r), r), r);
     n_Delete(&n, r);
 
     return q;
@@ -2248,7 +2249,7 @@ poly CReducerFinder::FindReducer(const poly product, const poly syzterm, const C
       continue;
     }
 
-    p_SetCoeff0(q, n_Neg( n_Div( p_GetCoeff(product, r), p_GetCoeff(p, r), r), r), r);
+    p_SetCoeff0(q, n_InpNeg( n_Div( p_GetCoeff(product, r), p_GetCoeff(p, r), r), r), r);
 
     return q;
   }
@@ -2336,7 +2337,7 @@ poly CReducerFinder::FindReducer(const poly product, const poly syzterm, const C
       continue;
     }
 
-    p_SetCoeff0(q, n_Neg( n_Div( p_GetCoeff(product, r), p_GetCoeff(p, r), r), r), r);
+    p_SetCoeff0(q, n_InpNeg( n_Div( p_GetCoeff(product, r), p_GetCoeff(p, r), r), r), r);
     return q;
   }
 */

@@ -1,14 +1,16 @@
 #include "kernel/mod2.h" // general settings/macros
 #include "Singular/mod_lib.h"
-//#include"kernel/febase.h"  // for Print, WerrorS
 #include"Singular/ipid.h" // for SModulFunctions, leftv
 #include"Singular/number2.h" // for SModulFunctions, leftv
 #include"libpolys/coeffs/numbers.h" // nRegister, coeffs.h
 #include "libpolys/coeffs/coeffs.h"
 #include"Singular/blackbox.h" // blackbox type
+#include <Singular/libsingular.h> // for iiLibCmd
+
 #include "nforder.h"
 #include "nforder_elt.h"
 #include "nforder_ideal.h"
+#include "lattice.h"
 #include "libpolys/coeffs/bigintmat.h"
 
 #ifdef SINGULAR_4_1
@@ -210,6 +212,89 @@ static BOOLEAN nforder_ideal_bb_setup()
   PrintLn();
   return FALSE; // ok, TRUE = error!
 }
+
+// lattice type: ------------------------------------------------------------
+
+static int lattice_id=1; //NOTE 1 works?
+
+static void * lattice_Init(blackbox */*b*/)
+{
+  void * l = omAlloc(sizeof(lattice));
+//   Print("create at %lx\n",(unsigned long)l);
+  return (void*) l;
+}
+
+static void lattice_destroy(blackbox * /*b*/, void *d)
+{
+  if (d!=NULL)
+  {
+//     Print("destroy %x at %lx\n",*((int*)d),(unsigned long)d);
+    delete (lattice*)d;
+  }
+}
+
+static void * lattice_Copy(blackbox* /*b*/, void *d)
+{ 
+  lattice * ll = (lattice*) omAlloc(sizeof(lattice));
+  *ll = *((lattice*)d);
+  return ll;   //NOTE
+}
+
+
+static char * lattice_String(blackbox */*b*/, void *d)
+{
+  StringSetS("");
+  if(d){
+    ((lattice *)d)->Write();
+  } else {
+    StringAppendS("o not defined o");
+  }
+  return StringEndS();
+}
+static BOOLEAN lattice_Assign(leftv l, leftv r)
+{
+  if (l->Typ()==r->Typ()) // assignment of same type
+  {
+    if (l->rtyp==IDHDL) {// assign to variable    
+      omFree(IDDATA((idhdl)l->data));
+      IDDATA((idhdl)l->data)=(char *)lattice_Copy((blackbox*)NULL, r->data);
+    } else { // assign to a part of a structure
+      leftv ll = l->LData();
+      if(ll == NULL) {
+          return TRUE; // out of array bounds or similiar
+      }
+      omFree(ll->data);
+      l->data=(char*)lattice_Copy((blackbox*)NULL, r->data);
+    }
+//   } else if (r->Typ() == BIGINTMAT_CMD) { // use matrix as lattice base
+//     bigintmat * basis = (bigintmat*)r->Data();
+//     lattice * lat = new lattice(basis,false);
+// //     omFree(IDDATA((idhdl)l->data));
+//     l->data=(char*) lat;
+  } else {
+    Werror("assign Type(%d) = Type(%d) not implemented",l->Typ(),r->Typ());
+    return TRUE;
+  }
+  return FALSE;
+}
+
+static BOOLEAN lattice_bb_setup()
+{
+  blackbox * b = (blackbox*) omAlloc0(sizeof(blackbox));
+  b->blackbox_Init = lattice_Init;
+  b->blackbox_destroy = lattice_destroy;
+  b->blackbox_Copy = lattice_Copy;
+  b->blackbox_String = lattice_String;
+//   b->blackbox_Print = lattice_Print;
+  b->blackbox_Assign = lattice_Assign;
+  lattice_id = setBlackboxStuff(b,"lattice");    
+
+  Print("setup: created a blackbox type [%d] '%s'",lattice_id, getBlackboxName(lattice_id));
+  PrintLn();
+  return FALSE;
+}
+
+
 
 // module stuff: ------------------------------------------------------------
 
@@ -435,76 +520,349 @@ static BOOLEAN smithtest(leftv result, leftv arg)
   return FALSE;
 }
 
+static BOOLEAN bimToCurrRing(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != BIGINTMAT_CMD)) 
+  {
+    WerrorS("usage: bimToCurrRing(bigintmat)");
+    return TRUE;
+  }
+
+  bigintmat * in = (bigintmat *) arg->Data();  
+  bigintmat * out = bimChangeCoeff(in,currRing->cf);
+
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) out;
+  return FALSE;
+}
+
+static BOOLEAN latticeFromBasis(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != BIGINTMAT_CMD)) 
+  {
+    WerrorS("usage: latticeFromBasis(bigintmat)");
+    return TRUE;
+  }
+
+  bigintmat * a = (bigintmat *) arg->Data();  
+  lattice * l = new lattice(a,false);
+
+  result->rtyp = lattice_id;
+  result->data = (void*) l;
+  return FALSE;
+}
+static BOOLEAN latticeFromGramMatrix(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != BIGINTMAT_CMD)) 
+  {
+    WerrorS("usage: latticeFromGramMatrix(bigintmat)");
+    return TRUE;
+  }
+
+  bigintmat * a = (bigintmat *) arg->Data();  
+  lattice * l = new lattice(a,true);
+
+  result->rtyp = lattice_id;
+  result->data = (void*) l;
+  return FALSE;
+}
+
+static BOOLEAN LLL(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: LLL(lattice,[number])");
+    return TRUE;
+  }
+  lattice * l = (lattice*) arg->Data();
+  
+  number c;
+  coeffs coef = currRing->cf;
+  
+  arg = arg->next;
+  
+  if(arg == NULL) 
+  {
+    number three = n_Init(3, coef);
+    number four  = n_Init(4, coef);
+    c = n_Div(three,four,coef);
+    n_Delete(&three,coef);
+    n_Delete(&four,coef);
+  } 
+  else if(arg->Typ() != NUMBER_CMD) 
+  {
+    WerrorS("usage: LLL(lattice,[number])");
+    return TRUE;
+  } else {
+    c = n_Copy((number) arg->Data(),coef);
+  }
+  
+  l->LLL(c,coef,true,false,true);
+  n_Delete(&c,coef);
+  
+  result->rtyp = NONE;
+  return FALSE;
+}
+
+static BOOLEAN getLatticeElement(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: getLatticeElement(lattice, bigintmat)");
+    return TRUE;
+  }
+  lattice * l = (lattice*) arg->Data();
+  arg = arg->next;
+  if( (arg == NULL) 
+    ||(arg->Typ() != BIGINTMAT_CMD)) 
+  {
+    WerrorS("usage: enumerateAll(lattice, number)");
+    return TRUE;
+  }
+  bigintmat * in = ((bigintmat *)arg->Data());
+  bigintmat * enumeration = l->get_lattice_element(in);
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) enumeration;
+  delete in;
+  return FALSE;
+}
+static BOOLEAN getBasis(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: getBasis(lattice)");
+    return TRUE;
+  }
+  lattice * l = (lattice*) arg->Data();
+
+  bigintmat * basis = l->get_basis();
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) basis;
+  return FALSE;
+}
+
+static BOOLEAN getReducedBasis(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: getReducedBasis(lattice)");
+    return TRUE;
+  }
+  lattice * l = (lattice*) arg->Data();
+
+  bigintmat * reduced = l->get_reduced_basis();
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) reduced;
+  return FALSE;
+}
+
+static BOOLEAN getTransformationMatrix(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: getTransformationMatrix(lattice)");
+    return TRUE;
+  }
+  lattice * l = (lattice*) arg->Data();
+
+  bigintmat * H = l->get_transformation_matrix();
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) H;
+  return FALSE;
+}
+static BOOLEAN getGramMatrix(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: getGramMatrix(lattice)");
+    return TRUE;
+  }
+  lattice * l = (lattice*) arg->Data();
+
+  bigintmat * gram = l->get_gram_matrix();
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) gram;
+  return FALSE;
+}
+
+static BOOLEAN enumerateAll(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: enumerateAll(lattice, number)");
+    return TRUE;
+  }
+  lattice * l = (lattice*) arg->Data();
+  arg = arg->next;
+  if( (arg == NULL) 
+    ||(arg->Typ() != NUMBER_CMD)) 
+  {
+    WerrorS("usage: enumerateAll(lattice, number)");
+    return TRUE;
+  }
+  number c = ((number)arg->Data());
+  bigintmat * enumeration = l->enumerate_all(c);
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) enumeration;
+  return FALSE;
+}
+
+static BOOLEAN enumerateNext(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: enumerateNext(lattice [, number] [,bigintmat])");
+    return TRUE;
+  }
+  lattice * l = (lattice*) arg->Data();
+  arg = arg->next;
+  bigintmat * enumeration = NULL;
+  
+  
+  if( (arg == NULL) || ((arg->Typ() != NUMBER_CMD) && (arg->Typ() != BIGINTMAT_CMD)) ) 
+  {
+    enumeration = l->enumerate_next();
+  } else {
+    if(arg->Typ() == NUMBER_CMD)
+    {
+      number c = ((number)arg->Data());
+      arg = arg->next;
+      if( (arg == NULL) )
+      {
+        enumeration = l->enumerate_next(c);
+      } else {
+        if(arg->Typ() == BIGINTMAT_CMD)
+        {
+          bigintmat * in = (bigintmat *) arg->Data();
+          enumeration = l->enumerate_next(c,in);
+        } else {
+          WerrorS("usage: enumerateNext(lattice [, number] [,bigintmat])");
+          return TRUE;
+        }
+      }
+    } else {
+      if(arg->Typ() == BIGINTMAT_CMD)
+      {
+        bigintmat * in = (bigintmat *) arg->Data();
+        enumeration = l->enumerate_next(in);
+      } else {
+        WerrorS("usage: enumerateNext(lattice [, number] [,bigintmat])");
+        return TRUE;
+      }
+    }
+  }
+  if(enumeration == NULL)
+  {
+    bigintmat * basis =l->get_basis();
+    enumeration = new bigintmat(basis->cols(),1,basis->basecoeffs());
+    delete basis;
+  }
+  
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) enumeration;
+  return FALSE;
+}
+
+static BOOLEAN get_same_field_poly(leftv result, leftv arg)
+{
+  if( (arg == NULL) 
+    ||(arg->Typ() != POLY_CMD)) 
+  {
+    WerrorS("usage: sameFieldPoly( poly )");
+    return TRUE;
+  }
+  poly in =((poly)arg->Data());
+  poly out = get_nice_poly(in);
+  result->rtyp = POLY_CMD;
+  result->data = (void*) out;
+  return FALSE;
+}
+static BOOLEAN t2_norm(leftv result, leftv arg)
+{
+  if( (arg == NULL) 
+    ||(arg->Typ() != POLY_CMD)) 
+  {
+    WerrorS("usage: t2norm(poly, int)");
+    return TRUE;
+  }
+  poly in =((poly)arg->Data());
+  arg = arg->next;
+  if( (arg == NULL) 
+    ||(arg->Typ() != INT_CMD)) 
+  {
+    WerrorS("usage: t2norm(poly, int)");
+    return TRUE;
+  }
+  int prec = (int)(long) arg->Data();
+  number out = t2norm(in,currRing,currRing->cf,prec);
+  result->rtyp = NUMBER_CMD;
+  result->data = (void*) out;
+  return FALSE;
+}
+
+typedef struct {
+  const char * name;
+  BOOLEAN (*func)(leftv, leftv);
+} cmd;
+
+static cmd cmd_arr[] = {
+{ "nfOrder", build_ring},
+{ "pMaximalOrder", pMaximalOrder},
+{ "OneStep", oneStep},
+{ "Discriminant", discriminant}, 
+{ "EltFromMat", elt_from_mat}, 
+{ "NFOrderSimplify", nforder_simplify}, 
+{ "EltNorm", eltNorm}, 
+{ "EltTrace", eltTrace}, 
+{ "EltRepMat", eltRepMat}, 
+{ "SmithTest", smithtest}, 
+{ "IdealFromMat", ideal_from_mat}, 
+{ "bimToCurrRing", bimToCurrRing},
+{ "latticeFromBasis", latticeFromBasis},
+{ "latticeFromGramMatrix", latticeFromGramMatrix},
+{ "LLL", LLL},
+{ "getLatticeElement", getLatticeElement},
+{ "getBasis", getBasis},
+{ "getReducedBasis", getReducedBasis},
+{ "getTransformationMatrix", getTransformationMatrix},
+{ "getGramMatrix", getGramMatrix}, 
+{ "enumerateAll", enumerateAll},
+{ "enumerateNext", enumerateNext},
+{ "sameFieldPoly", get_same_field_poly},
+{ "t2norm", t2_norm},
+{ NULL, NULL}
+};
 
 extern "C" int SI_MOD_INIT(Order)(SModulFunctions* psModulFunctions)
 {
+  //load nforder.lib for additional procedures
+  //NOTE: is this the correct way to do it?
+  iiLibCmd(omStrDup("nforder.lib"), TRUE,TRUE,TRUE);
+
   nforder_Register();
+
   nforder_ideal_bb_setup();
-  psModulFunctions->iiAddCproc(
-          (currPack->libname? currPack->libname: ""),// the library name,
-          "nfOrder",// the name for the singular interpreter
-          FALSE,  // should not be static
-          build_ring); // the C/C++ routine
+  lattice_bb_setup();
 
-  psModulFunctions->iiAddCproc(
-          (currPack->libname? currPack->libname: ""),// the library name,
-          "pMaximalOrder",// the name for the singular interpreter
-          FALSE,  // should not be static
-          pMaximalOrder); // the C/C++ routine
 
-  psModulFunctions->iiAddCproc(
-          (currPack->libname? currPack->libname: ""),// the library name,
-          "oneStep",// the name for the singular interpreter
-          FALSE,  // should not be static
-          oneStep); // the C/C++ routine
-
-  psModulFunctions->iiAddCproc(
+  for(int i=0; cmd_arr[i].name; i++) {
+    psModulFunctions->iiAddCproc(
           (currPack->libname? currPack->libname: ""),
-          "Discriminant",
+          cmd_arr[i].name,
           FALSE, 
-          discriminant); 
-
-  psModulFunctions->iiAddCproc(
-          (currPack->libname? currPack->libname: ""),
-          "EltFromMat",
-          FALSE, 
-          elt_from_mat); 
-
-  psModulFunctions->iiAddCproc(
-          (currPack->libname? currPack->libname: ""),
-          "NFOrderSimplify",
-          FALSE, 
-          nforder_simplify); 
-
-  psModulFunctions->iiAddCproc(
-          (currPack->libname? currPack->libname: ""),
-          "EltNorm",
-          FALSE, 
-          eltNorm); 
-
-  psModulFunctions->iiAddCproc(
-          (currPack->libname? currPack->libname: ""),
-          "EltTrace",
-          FALSE, 
-          eltTrace); 
-
-  psModulFunctions->iiAddCproc(
-          (currPack->libname? currPack->libname: ""),
-          "EltRepMat",
-          FALSE, 
-          eltRepMat); 
-
-  psModulFunctions->iiAddCproc(
-          (currPack->libname? currPack->libname: ""),
-          "SmithTest",
-          FALSE, 
-          smithtest); 
-
-  psModulFunctions->iiAddCproc(
-          (currPack->libname? currPack->libname: ""),
-          "IdealFromMat",
-          FALSE, 
-          ideal_from_mat); 
+          cmd_arr[i].func);
+  }
 
   module_help_main(
      (currPack->libname? currPack->libname: "NFOrder"),// the library name,

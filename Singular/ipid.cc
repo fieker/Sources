@@ -146,11 +146,6 @@ void *idrecDataInit(int t)
     case INTVEC_CMD:
     case INTMAT_CMD:
       return (void *)new intvec();
-    case CMATRIX_CMD:
-    case BIGINTMAT_CMD:
-      return (void *)new bigintmat();
-    case CNUMBER_CMD:
-      return (void*)n2Init(0,NULL);
     case NUMBER_CMD:
       return (void *) nInit(0);
     case BIGINT_CMD:

@@ -148,7 +148,6 @@ BOOLEAN nr2mInitChar (coeffs r, void* p)
   r->cfIsUnit      = nr2mIsUnit;
   r->cfGetUnit     = nr2mGetUnit;
   r->cfExtGcd      = nr2mExtGcd;
-  r->cfName        = ndName;
   r->cfCoeffWrite  = nr2mCoeffWrite;
   r->cfQuot1       = nr2mQuot1;
 #ifdef LDEBUG
@@ -720,11 +719,11 @@ nMapFunc nr2mSetMap(const coeffs src, const coeffs dst)
   {
     return nr2mMapQ;
   }
-  if ((src->rep=n_rep_int) && nCoeff_is_Zp(src) && (src->ch == 2))
+  if ((src->rep==n_rep_int) && nCoeff_is_Zp(src) && (src->ch == 2))
   {
     return nr2mMapZp;
   }
-  if ((src->rep=n_rep_gmp) &&
+  if ((src->rep==n_rep_gmp) &&
   (nCoeff_is_Ring_PtoM(src) || nCoeff_is_Ring_ModN(src)))
   {
     if (mpz_divisible_2exp_p(src->modNumber,dst->modExponent))

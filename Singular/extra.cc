@@ -679,8 +679,8 @@ BOOLEAN jjSYSTEM(leftv res, leftv args)
         }
         res->rtyp=INT_CMD;
         res->data=(void*)(long)gmp_output_digits;
-	//if (gmp_output_digits!=getGMPFloatDigits())
-	//{ Print("%d, %d\n",getGMPFloatDigits(),gmp_output_digits);}
+        //if (gmp_output_digits!=getGMPFloatDigits())
+        //{ Print("%d, %d\n",getGMPFloatDigits(),gmp_output_digits);}
         return FALSE;
       }
   /*==================== mpz_t loader ======================*/
@@ -2500,16 +2500,14 @@ static BOOLEAN jjEXTENDED_SYSTEM(leftv res, leftv h)
   /*==================== setsyzcomp ==================================*/
       if(strcmp(sys_cmd,"setsyzcomp")==0)
       {
-      
-      if ((h!=NULL) && (h->Typ()==INT_CMD))
-         {
-           int k = (int)(long)h->Data();
-           if ( currRing->order[0] == ringorder_s )
-           {
-                rSetSyzComp(k, currRing);
-           }
+        if ((h!=NULL) && (h->Typ()==INT_CMD))
+        {
+          int k = (int)(long)h->Data();
+          if ( currRing->order[0] == ringorder_s )
+          {
+            rSetSyzComp(k, currRing);
           }
-      
+        }
       }
   /*==================== ring debug ==================================*/
         if(strcmp(sys_cmd,"r")==0)
@@ -3832,12 +3830,12 @@ static BOOLEAN jjEXTENDED_SYSTEM(leftv res, leftv h)
       if (id>0)
       {
         blackbox *bb=getBlackboxStuff(id);
-	if (BB_LIKE_LIST(bb))
-	{
+        if (BB_LIKE_LIST(bb))
+        {
           newstruct_desc desc=(newstruct_desc)bb->data;
           newstructShow(desc);
           return FALSE;
-	}
+        }
       }
     }
     return TRUE;
@@ -3874,71 +3872,6 @@ static BOOLEAN jjEXTENDED_SYSTEM(leftv res, leftv h)
     si_link p=ssiCommandLink();
     res->data=(void*)p;
     return (p==NULL);
-  }
-  else
-  /*==================== Test Boos Epure ==================================*/
-  if (strcmp(sys_cmd, "Hallo")==0)
-  {
-    n_coeffType nae=nRegister(n_unknown,n_AEInitChar);
-    coeffs AE=nInitChar(nae,NULL);
-    ring r=currRing;
-    rUnComplete(r);
-    r->cf=AE;
-    rComplete(r,TRUE);
-    /*
-    // Ab hier wird gespielt
-    int_poly* f=new int_poly;
-    f->poly_insert();
-    int_poly* g=new int_poly;
-    g->poly_insert();
-    // Ab hier gerechnet
-    number a=reinterpret_cast<number> (f);
-    number b=reinterpret_cast<number> (g);
-    number erg=n_Gcd(a,b,AE);
-    int_poly* h= reinterpret_cast<int_poly*> (erg);
-    h->poly_print();
-*/
-    return FALSE;
-  }
-  else
-  /*==================== Test Boos Epure 2 ==================================*/
-  if (strcmp(sys_cmd, "Hallo2")==0)
-  {
-    n_coeffType naeq=nRegister(n_unknown,n_QAEInitChar);
-    coeffs AEQ=nInitChar(naeq,NULL);
-    ring r=currRing;
-    rUnComplete(r);
-    r->cf=AEQ;
-    rComplete(r,TRUE);
-
-    return FALSE;
-  }
-  else
-  /*==================== Test Boos Epure 3==================================*/
-  if (strcmp(sys_cmd, "Hallo3")==0)
-  {
-    n_coeffType naep=nRegister(n_unknown,n_pAEInitChar);
-    coeffs AEp=nInitChar(naep,NULL);
-    ring r=currRing;
-    rUnComplete(r);
-    r->cf=AEp;
-    rComplete(r,TRUE);
-    //JETZT WOLLEN WIR DOCH MAL SPIELEN
-
-    // Ab hier wird gespielt
-    p_poly* f=new p_poly;
-    f->p_poly_insert();
-
-    p_poly* g=new p_poly;
-    g->p_poly_insert();
-    // Ab hier gerechnet
-    number a=reinterpret_cast<number> (f);
-    number b=reinterpret_cast<number> (g);
-    number erg=n_Add(a,b,AEp);
-    p_poly* h= reinterpret_cast<p_poly*> (erg);
-    h->p_poly_print();
-
-    return FALSE;
   }
   else
 /*==================== Error =================*/

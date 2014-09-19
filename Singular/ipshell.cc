@@ -225,18 +225,18 @@ static void list1(const char* s, idhdl h,BOOLEAN c, BOOLEAN fullname)
 #endif
                    break;
 #ifdef SINGULAR_4_1
-    case CNUMBER_CMD: 
+    case CNUMBER_CMD:
                    {  number2 n=(number2)IDDATA(h);
-		      Print(" (%s)",n->cf->cfCoeffName(n->cf));
-		      break;
-		   }
+                      Print(" (%s)",n->cf->cfCoeffName(n->cf));
+                      break;
+                   }
     case CMATRIX_CMD:
                    {  bigintmat *b=(bigintmat*)IDDATA(h);
-		      Print(" %d x %d (%s)",
-		        b->rows(),b->cols(),
-		        b->basecoeffs()->cfCoeffName(b->basecoeffs()));
-		      break;
-		   }
+                      Print(" %d x %d (%s)",
+                        b->rows(),b->cols(),
+                        b->basecoeffs()->cfCoeffName(b->basecoeffs()));
+                      break;
+                   }
 #endif
     /*default:     break;*/
   }
@@ -419,6 +419,7 @@ void killlocals(int v)
 
 void list_cmd(int typ, const char* what, const char *prefix,BOOLEAN iterate, BOOLEAN fullname)
 {
+  package savePack=currPack;
   idhdl h,start;
   BOOLEAN all = typ<0;
   BOOLEAN really_all=FALSE;
@@ -448,16 +449,21 @@ void list_cmd(int typ, const char* what, const char *prefix,BOOLEAN iterate, BOO
         }
         else if(IDTYP(h)==PACKAGE_CMD)
         {
+          currPack=IDPACKAGE(h);
           //Print("list_cmd:package\n");
           all=TRUE;typ=PROC_CMD;fullname=TRUE;really_all=TRUE;
           h=IDPACKAGE(h)->idroot;
         }
         else
+        {
+          currPack=savePack;
           return;
+        }
       }
       else
       {
         Werror("%s is undefined",what);
+        currPack=savePack;
         return;
       }
     }
@@ -493,6 +499,7 @@ void list_cmd(int typ, const char* what, const char *prefix,BOOLEAN iterate, BOO
     }
     h = IDNEXT(h);
   }
+  currPack=savePack;
 }
 
 void test_cmd(int i)
@@ -1173,7 +1180,7 @@ BOOLEAN iiParameter(leftv p)
     return TRUE;
   }
   leftv h=iiCurrArgs;
-  leftv rest=h->next; /*iiCurrArgs is not NULLi here*/
+  leftv rest=h->next; /*iiCurrArgs is not NULL here*/
   BOOLEAN is_default_list=FALSE;
   if (strcmp(p->name,"#")==0)
   {
@@ -1554,8 +1561,6 @@ idhdl rDefault(const char *s)
   r->order[1]  = ringorder_C;
   /* the last block: everything is 0 */
   r->order[2]  = 0;
-  /*polynomial ring*/
-  r->OrdSgn    = 1;
 
   /* complete ring intializations */
   rComplete(r);
@@ -2146,6 +2151,14 @@ ring rCompose(const lists  L, const BOOLEAN check_comp)
 
   // ------------------------------------------------------------------
   // 0: char:
+#ifdef SINGULAR_4_1
+  if (L->m[0].Typ()==CRING_CMD)
+  {
+    R->cf=(coeffs)L->m[0].Data();
+    R->cf->ref++;
+  }
+  else
+#endif
   if (L->m[0].Typ()==INT_CMD)
   {
     int ch = (int)(long)L->m[0].Data();
@@ -2299,7 +2312,6 @@ ring rCompose(const lists  L, const BOOLEAN check_comp)
     for (j=0; j < n-1; j++)
       R->order[j] = (int) ringorder_unspec;
     // orderings
-    R->OrdSgn=1;
     for(j=0;j<n-1;j++)
     {
     // todo: a(..), M
@@ -5591,7 +5603,7 @@ void rKill(ring r)
     }
     int j;
 #ifdef USE_IILOCALRING
-    for (j=0;j<iiRETURNEXPR_len;j++)
+    for (j=0;j<myynest;j++)
     {
       if (iiLocalRing[j]==r)
       {
@@ -5902,8 +5914,7 @@ BOOLEAN iiTestAssume(leftv a, leftv b)
       if (b->Data()==NULL) { Werror("ASSUME failed:%s",assume_yylinebuf);return TRUE;}
     }
   }
-  else
-     b->CleanUp();
+  b->CleanUp();
   a->CleanUp();
   return FALSE;
 }

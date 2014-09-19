@@ -44,6 +44,7 @@ Short/bug_42.tst
 Short/bug_43.tst
 Short/bug_44.tst
 Short/bug_46.tst
+Short/bug_469.tst
 Short/bug_47.tst
 Short/bug_48.tst
 Short/bug_49.tst
@@ -52,6 +53,7 @@ Short/bug_51.tst
 Short/bug_52.tst
 Short/bug_526.tst
 Short/bug_527_s.tst
+Short/bug_529.tst
 Short/bug_597.tst
 Short/bug_53.tst
 Short/bug_54.tst
@@ -60,8 +62,14 @@ Short/bug_55.tst
 Short/bug_532_s.tst
 Short/bug_538_s.tst
 Short/bug_540.tst
+Short/bug_583.tst
 Short/bug_5.tst
 Short/bug_6.tst
+Short/bug_609.tst
+Short/bug_611.tst
+Short/bug_613.tst
+Short/bug_632.tst
+Short/bug_633.tst
 Short/bug_7.tst
 Short/bug_8.tst
 Short/bug_9.tst
@@ -216,6 +224,7 @@ Short/polylib_s.tst
 Short/primdec2.tst
 ; Short/primdec3.tst ; too long!
 Short/primdec_s.tst
+Short/primdecint_some_special_cases.tst
 Short/primefactors.tst
 Short/primitiv_s.tst
 ;;;;;;;;;;;;;;;;;;;; Short/pyobject.tst

@@ -233,6 +233,7 @@ idhdl idrec::set(const char * s, int level, int t, BOOLEAN init)
     if (t == PROC_CMD)
     {
       IDPROC(h)->language=LANG_NONE;
+      IDPROC(h)->ref=1;
     }
     else if (t == PACKAGE_CMD)
     {
@@ -302,7 +303,7 @@ idhdl enterid(const char * s, int lev, int t, idhdl* root, BOOLEAN init, BOOLEAN
         {
           if (BVERBOSE(V_REDEFINE))
             Warn("redefining %s **",s);
-          IDID(h)=NULL;
+          if (s==IDID(h)) IDID(h)=NULL;
           killhdl2(h,&currRing->idroot,currRing);
         }
         else

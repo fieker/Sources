@@ -1,5 +1,6 @@
-/*!
- \file coeffs/coeffs.h Coeff. Rings and Fields (interface)
+/*! \file coeffs/coeffs.h Coefficient rings, fields and other domains suitable for Singular polynomials
+
+  The main interface for Singular coefficients: \ref coeffs is the main handler for Singular numbers
 */
 /****************************************
 *  Computer Algebra System SINGULAR     *
@@ -56,6 +57,12 @@ struct ip_sring;
 typedef struct ip_sring *         ring;
 typedef struct ip_sring const *   const_ring;
 
+/// @class coeffs coeffs.h coeffs/coeffs.h
+///
+/// The main handler for Singular numbers which are suitable for Singular polynomials.
+///
+/// With it one may implement a ring, a field, a domain etc.
+///
 struct n_Procs_s;
 typedef struct  n_Procs_s  *coeffs;
 typedef struct  n_Procs_s  const * const_coeffs;
@@ -266,9 +273,6 @@ struct n_Procs_s
    /// random: generate random values
    number (*cfRandom)(number a, number b, const coeffs r);
 
-   /// For extensions (writes into global string buffer)
-   char *  (*cfName)(number n, const coeffs r);
-
    /// Inplace: a *= b
    void    (*cfInpMult)(number &a, number b, const coeffs r);
 
@@ -422,6 +426,9 @@ static inline n_coeffType getCoeffType(const coeffs r)
 /// one-time initialisations for new coeffs
 /// in case of an error return NULL
 coeffs nInitChar(n_coeffType t, void * parameter);
+
+/// "copy" coeffs, i.e. increment ref
+static inline coeffs nCopyCoeff(const coeffs cf) { cf->ref++; return cf;}
 
 /// undo all initialisations
 void nKillChar(coeffs r);

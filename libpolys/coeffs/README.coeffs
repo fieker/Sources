@@ -73,8 +73,8 @@ optional:
 -cfExactDiv (otherwise: it is cfDiv): for optimization. Behaviour undefined if 
   the division does not work
 -cfSize (otherwise: !cfIsZero(..))
-  Question: is this a mathematical size or a printing size? ie. what is the use
-  for it?
+  should measure the complexity, used for pivot strategies etc.
+  Required: size(0)==0, size(a)>0 for a!=0
 -cfRePart (otherwise: cfCopy)
 -cfImPart (otherwise returns cfInit(0))
 -cfWriteShort (otherwise: cfWriteLong)
@@ -86,8 +86,6 @@ optional:
  Stupid example: take K=Q as a number field with basis 1/2. Then wrt to the basis
  1/2, the element 1/2 has no denominator, hence Den(1/2)=1. However...
 -cfGetNumerator (otherwiser cfCopy)
--cfName (otherwise return NULL)
- Use?
 -cfInpMult (otherwise via cfMult/cfDelet): for optimization
 -cfInpAdd (otherwise via cfAdd/cfDelet): for optimization
 -cfFarey:(x, M) find a/b in the quotient field of R sth. a = bx mod M and both

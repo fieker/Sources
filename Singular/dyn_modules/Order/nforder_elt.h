@@ -1,7 +1,7 @@
 #ifndef NFORDER_ELT_HPP
 #define NFORDER_ELT_HPP
 
-extern n_coeffType nforder_type;
+extern n_coeffType n_NFord;
 
 number EltCreateMat(nforder *a, bigintmat *b);
 

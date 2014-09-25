@@ -14,16 +14,16 @@
 #include "libpolys/coeffs/bigintmat.h"
 
 #ifdef SINGULAR_4_1
-static int nforder_type_id=0;
-n_coeffType nforder_type =n_unknown;
+static int n_NFord_id=0;
+n_coeffType n_NFord =n_unknown;
 
 // coeffs stuff: -----------------------------------------------------------
 static coeffs nforder_AE=NULL;
 static void nforder_Register()
 {
   puts("nforder_Register called");
-  nforder_type=nRegister(n_unknown,n_nfOrderInit);
-  nforder_AE=nInitChar(nforder_type,NULL);
+  n_NFord=nRegister(n_unknown,n_nfOrderInit);
+  nforder_AE=nInitChar(n_NFord,NULL);
 }
 // black box stuff: ---------------------------------------------------------
 static void * nforder_ideal_Init(blackbox */*b*/)
@@ -69,7 +69,7 @@ BOOLEAN checkArgumentIsOrder(leftv arg, nforder * cmp, nforder ** result)
 {
   if (arg->Typ() != CRING_CMD) return FALSE;
   coeffs R = (coeffs) arg->Data();
-  if (getCoeffType(R) != nforder_type) return FALSE;
+  if (getCoeffType(R) != n_NFord) return FALSE;
   nforder * O = (nforder*) R->data;
   if (cmp && cmp != O) return FALSE;
   *result = O;
@@ -97,7 +97,7 @@ BOOLEAN checkArgumentIsNumber2(leftv arg, coeffs r, number2 * result)
 
 BOOLEAN checkArgumentIsNFOrderIdeal(leftv arg, coeffs r, nforder_ideal ** result)
 {
-  if (arg->Typ() != nforder_type_id) return FALSE;
+  if (arg->Typ() != n_NFord_id) return FALSE;
   *result = (nforder_ideal *) arg->Data();
   if (r && (*result)->order() != r) return FALSE;
   return TRUE;
@@ -187,7 +187,7 @@ static BOOLEAN nforder_ideal_Op2(int op,leftv l, leftv r1, leftv r2)
     default:
       return TRUE;
   }
-  l->rtyp = nforder_type_id;
+  l->rtyp = n_NFord_id;
   l->data = (void*)H;
   return FALSE;
 }
@@ -207,8 +207,8 @@ static BOOLEAN nforder_ideal_bb_setup()
   b->blackbox_Op2=nforder_ideal_Op2;
   //b->blackbox_Op3=blackbox_default_Op3;
   //b->blackbox_OpM=blackbox_default_OpM;
-  nforder_type_id = setBlackboxStuff(b,"NFOrderIdeal");
-  Print("setup: created a blackbox type [%d] '%s'",nforder_type_id, getBlackboxName(nforder_type_id));
+  n_NFord_id = setBlackboxStuff(b,"NFOrderIdeal");
+  Print("setup: created a blackbox type [%d] '%s'",n_NFord_id, getBlackboxName(n_NFord_id));
   PrintLn();
   return FALSE; // ok, TRUE = error!
 }
@@ -344,7 +344,7 @@ static BOOLEAN build_ring(leftv result, leftv arg)
     omFree(multtable);
   }
   result->rtyp=CRING_CMD; // set the result type
-  result->data=(char*)nInitChar(nforder_type, o);// set the result data
+  result->data=(char*)nInitChar(n_NFord, o);// set the result data
 
   return FALSE;
 }
@@ -362,8 +362,8 @@ static BOOLEAN ideal_from_mat(leftv result, leftv arg)
     WerrorS("3:usage: IdealFromMat(order, basis matrix)");
     return TRUE;
   }
-  result->rtyp = nforder_type_id;
-  result->data = new nforder_ideal(b, nInitChar(nforder_type, O));
+  result->rtyp = n_NFord_id;
+  result->data = new nforder_ideal(b, nInitChar(n_NFord, O));
   return FALSE;
 }
 
@@ -381,7 +381,7 @@ static BOOLEAN elt_from_mat(leftv result, leftv arg)
     WerrorS("2:usage: EltFromMat(order, matrix)");
     return TRUE;
   }
-  returnNumber(result, (number)EltCreateMat(O, b), nInitChar(nforder_type, O));
+  returnNumber(result, (number)EltCreateMat(O, b), nInitChar(n_NFord, O));
   return FALSE;
 }
 
@@ -412,7 +412,7 @@ static BOOLEAN pMaximalOrder(leftv result, leftv arg)
   nforder *op = pmaximal(o, P);
 
   result->rtyp=CRING_CMD; // set the result type
-  result->data=(char*)nInitChar(nforder_type, op);// set the result data
+  result->data=(char*)nInitChar(n_NFord, op);// set the result data
   assume(result->data);
 
   return FALSE;
@@ -422,7 +422,7 @@ static BOOLEAN oneStep(leftv result, leftv arg)
 {
   assume (arg->Typ()==CRING_CMD);
   coeffs c = (coeffs)arg->Data();
-  assume (c->type == nforder_type);
+  assume (c->type == n_NFord);
   nforder * o = (nforder*)c->data;
   arg = arg->next;
   long p = (int)(long)arg->Data();
@@ -431,7 +431,7 @@ static BOOLEAN oneStep(leftv result, leftv arg)
   nforder *op = onestep(o, P, o->basecoeffs());
 
   result->rtyp=CRING_CMD; // set the result type
-  result->data=(char*)nInitChar(nforder_type, op);// set the result data
+  result->data=(char*)nInitChar(n_NFord, op);// set the result data
 
   return FALSE;
 }
@@ -446,7 +446,7 @@ static BOOLEAN nforder_simplify(leftv result, leftv arg)
   nforder *op = o->simplify();
 
   result->rtyp=CRING_CMD; // set the result type
-  result->data=(char*)nInitChar(nforder_type, op);// set the result data
+  result->data=(char*)nInitChar(n_NFord, op);// set the result data
 
   return FALSE;
 }
@@ -459,7 +459,7 @@ static BOOLEAN eltTrace(leftv result, leftv arg)
     return TRUE;
   }
   coeffs  c = a->cf;
-  if (getCoeffType(c) != nforder_type) {
+  if (getCoeffType(c) != n_NFord) {
     WerrorS("EltTrace(elt in order)");
     return TRUE;
   }
@@ -478,7 +478,7 @@ static BOOLEAN eltNorm(leftv result, leftv arg)
     return TRUE;
   }
   coeffs  c = a->cf;
-  if (getCoeffType(c) != nforder_type) {
+  if (getCoeffType(c) != n_NFord) {
     WerrorS("EltNorm(elt in order)");
     return TRUE;
   }
@@ -495,7 +495,7 @@ static BOOLEAN eltRepMat(leftv result, leftv arg)
   number2 a = (number2) arg->Data();
   coeffs  c = a->cf;
   bigintmat * aa = (bigintmat*)a->n;
-  assume (c->type == nforder_type);
+  assume (c->type == n_NFord);
   nforder * o = (nforder*)c->data;
   bigintmat* t = o->elRepMat(aa);
   result->rtyp = BIGINTMAT_CMD;

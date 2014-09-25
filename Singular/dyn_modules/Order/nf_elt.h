@@ -4,8 +4,8 @@
 extern n_coeffType nf_type;
 
 typedef struct {
-  number den; //
-  number elt;
+  number den; //of type n_Z
+  number elt; //of type n_NFord
 } nf_elt_t;
 
 #define nf_elt_den(a) ((nf_elt_t*)a->den)

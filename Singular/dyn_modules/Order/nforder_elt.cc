@@ -8,7 +8,7 @@
 #include "nforder.h"
 #include "libpolys/coeffs/bigintmat.h"
 
-extern n_coeffType nforder_type;
+extern n_coeffType n_NFord;
 
 static void WriteRing(const coeffs r, BOOLEAN details)
 {
@@ -49,11 +49,11 @@ number EltCreateMat(nforder *a, bigintmat *b)
 
 static BOOLEAN order_cmp(coeffs n, n_coeffType t, void*parameter)
 {
-  return (t==nforder_type) && (n->data == parameter);
+  return (t==n_NFord) && (n->data == parameter);
 }
 
 static void KillChar(coeffs r) {
-  Print("KillChar %lx\n", r);
+  Print("KillChar %lx\n", (void*)r);
 }
 #ifdef LDEBUG
   BOOLEAN EltDBTest(number, const char *, const int, const coeffs)
@@ -91,22 +91,22 @@ static number EltAdd(number a, number b, const coeffs r)
 }
 static number EltDiv(number a, number b, const coeffs r)
 {
-  Werror("%s called\n", __func__, a, b, r);
+  Werror("%s called\n", __func__);
   return NULL;
 }
 static number EltIntDiv(number a, number b, const coeffs r)
 {
-  Werror("IntDiv called on order elts", a, b, r);
+  Werror("IntDiv called on order elts");
   return NULL;
 }
 static number EltIntMod(number a, number b, const coeffs r)
 {
-  Werror("IntMod called on order elts", a, b, r);
+  Werror("IntMod called on order elts");
   return NULL;
 }
 static number EltExactDiv(number a, number b, const coeffs r)
 {
-  Werror("%s called\n", __func__, a, b, r);
+  Werror("%s called\n", __func__);
   return NULL;
 }
    /// init with an integer
@@ -139,7 +139,7 @@ static int EltSize(number n, const coeffs r)
 
 {
   Werror("%s called\n", __func__);
-  return NULL;
+  return 0;
 }
    /// convertion to int, 0 if impossible
 static int EltInt(number &n, const coeffs r)
@@ -182,12 +182,12 @@ static const char * EltRead(const char * s, number * a, const coeffs r)
 
 static BOOLEAN EltEqual(number a,number b, const coeffs r)
 {
-  Print("%s called\n", __func__, a, b, r);
+  Print("%s called\n", __func__);
   return 0;
 }
 static BOOLEAN EltGreater(number a,number b, const coeffs r)
 {
-  Print("%s called\n", __func__, a, b, r);
+  Print("%s called\n", __func__);
   return 0;
 }
 static BOOLEAN EltIsOne(number a, const coeffs r)
@@ -212,7 +212,7 @@ static BOOLEAN EltIsZero(number a, const coeffs r)
 
 static nMapFunc EltSetMap(const coeffs src, const coeffs dst)
 {
-  Print("%s called\n", __func__, src, dst);
+  Print("%s called\n", __func__);
   return NULL;
 }
 
@@ -226,7 +226,7 @@ static void EltDelete(number * a, const coeffs r)
 
 BOOLEAN n_nfOrderInit(coeffs r,  void * parameter)
 {
-  assume( getCoeffType(r) == nforder_type );
+  assume( getCoeffType(r) == n_NFord );
   r->nCoeffIsEqual=order_cmp;
   r->cfKillChar = KillChar;
   r->cfSetChar = SetChar;

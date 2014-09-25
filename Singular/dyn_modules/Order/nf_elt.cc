@@ -8,48 +8,57 @@
 #include "nforder.h"
 #include "libpolys/coeffs/bigintmat.h"
 
-extern n_coeffType nforder_type;
+extern n_coeffType n_NFord;
+
+static ZZ = n_InitChar(n_Z, NULL);
+omBin nfElt_bin = omGetSpecBin(sizeof(nf_elt_t));
+
+typedef nf_elt_t * nfElt_number;
 
 static void WriteRing(const coeffs r, BOOLEAN details)
 {
-  ((nforder *)r->data)->Print();
+  ((nf *)r->data)->Print();
 }
 
 static char* CoeffString(const coeffs r)
 {
-  return ((nforder *)r->data)->String();
+  return ((nf *)r->data)->String();
 }
+
 static void EltWrite(number &a, const coeffs r)
 {
-  bigintmat * b = (bigintmat*)a;
   if (a) {
-    bigintmat * c = b->transpose();
-    c->Write();
-    StringAppendS("^t ");
+    nf* K = (nf*)r;
+    n_Write(nf_elt_den(a), K->ord);
+    StringAppendS(" / ");
+    n_Write(nf_elt_num(a), ZZ);
+    StringAppendS("\n");
   } else {
     StringAppendS("(Null)\n");
   }
 }
 
-number EltCreateMat(nforder *a, bigintmat *b)
+number EltCreateNumDenTransfer(nf *a, number Num, number Den)
 {
-  number xx;
-  if (b->rows()==1) {
-    assume(b->cols()==a->getDim());
-    xx = (number) b->transpose();
-  } else {
-    assume(b->rows() == a->getDim());
-    assume(b->cols() == 1);
-    xx = (number) new bigintmat((bigintmat*)b);
-  }
-//  Print("Created new element %lx from %lx\n", xx, b);
+  nfElt_number xx = (nfElt_number) omAllocBin(nfElt_bin);
+  ((bigintmat*)Num)->simplifyContentDen(&Den); //remove common factors
+  nf_elt_num(xx) = Num;
+  nf_elt_den(xx) = Den;
   return (number) xx;
+}
+
+
+number EltCreateNumDen(nf *a, number Num, number Den)
+{
+  Num = n_Copy(Num, nf->ord);
+  Den = n_Copy(Den, ZZ);
+  return EltCreateNumDenTransfer(a, Num, Den);
 }
 
 
 static BOOLEAN order_cmp(coeffs n, n_coeffType t, void*parameter)
 {
-  return (t==nforder_type) && (n->data == parameter);
+  return (t==n_NFord) && (n->data == parameter);
 }
 
 static void KillChar(coeffs r) {
@@ -66,28 +75,55 @@ static void SetChar(const coeffs r)
 {
   Print("%s called\n", __func__);
 }
-                                // or NULL
-   // general stuff
+  // or NULL
+  // general stuff
 static number EltMult(number a, number b, const coeffs r)
 {
-  nforder *O = (nforder*) (r->data);
-  bigintmat *c = new bigintmat((bigintmat*)a);
-  O->elMult(c, (bigintmat*) b);
-  return (number) c;
+  nforder *O = ((nf*) (r->data))->ord;
+  bigintmat *c = new bigintmat(nf_elt_num(a));
+  O->elMult(c, nf_elt_num(b));
+  number den = n_Mult(nf_elt_den(a), nf_elt_den(b), ZZ);
+  return EltCreateNumDenTransfer(r, (number)c, den);
 }
+
+static number EltAddSub(number a, number b, const coeffs r, BOOLEAN add)
+{
+  nforder *O = ((nf*) (r->data))->ord;
+  bigintmat *c = new bigintmat((bigintmat*)nf_elt_num(a));
+  number den;
+
+  if (nf_elt_den(a) != nf_elt_den(b)) {
+    den = n_Lcm(nf_elt_den(a), nf_elt_den(b), ZZ);
+    number c1 = n_Div(den, nf_elt_den(a), ZZ),
+    number c2 = n_Div(den, nf_elt_den(b), ZZ);
+    c->skalmult(c1);
+    bigintmat *d = new bigintmat((bigintmat*)nf_elt_num(b));
+    d->skalmult(c2);
+    if (add) 
+      O->elAdd(c, (bigintmat*) d);
+    else
+      O->elSub(c, (bigintmat*) d);
+    delete d;
+    n_Delete(&c1, ZZ);
+    n_Delete(&c2, ZZ);
+  } else {
+    den = n_Copy(nf_elt_den(a), ZZ);
+    if (add) 
+      O->elAdd(c, (bigintmat*) nf_elt_num(b));
+    else
+      O->elSub(c, (bigintmat*) nf_elt_num(b));
+    delete d;
+  }
+  return EltCreateNumDenTransfer(r, (number)c, den);
+}
+
 static number EltSub(number a, number b, const coeffs r)
 {
-  nforder *O = (nforder*) (r->data);
-  bigintmat *c = new bigintmat((bigintmat*)a);
-  O->elSub(c, (bigintmat*) b);
-  return (number) c;
+  return EltAddSub(a, b, r, FALSE);
 }
 static number EltAdd(number a, number b, const coeffs r)
 {
-  nforder *O = (nforder*) (r->data);
-  bigintmat *c = new bigintmat((bigintmat*)a);
-  O->elAdd(c, (bigintmat*) b);
-  return (number) c;
+  return EltAddSub(a, b, r, TRUE);
 }
 static number EltDiv(number a, number b, const coeffs r)
 {
@@ -226,7 +262,7 @@ static void EltDelete(number * a, const coeffs r)
 
 BOOLEAN n_nfOrderInit(coeffs r,  void * parameter)
 {
-  assume( getCoeffType(r) == nforder_type );
+  assume( getCoeffType(r) == n_NFord );
   r->nCoeffIsEqual=order_cmp;
   r->cfKillChar = KillChar;
   r->cfSetChar = SetChar;
